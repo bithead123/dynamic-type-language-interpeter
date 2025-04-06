@@ -1,0 +1,3 @@
+/home/gcreep/github.local/lang-cpp/src/build/CMakeFiles/tt.dir
+/home/gcreep/github.local/lang-cpp/src/build/CMakeFiles/edit_cache.dir
+/home/gcreep/github.local/lang-cpp/src/build/CMakeFiles/rebuild_cache.dir
