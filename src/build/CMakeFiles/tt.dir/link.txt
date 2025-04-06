@@ -1,1 +1,0 @@
-/usr/bin/c++ -rdynamic CMakeFiles/tt.dir/lang.cpp.o -o tt  /usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.74.0 
