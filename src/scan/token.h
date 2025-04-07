@@ -16,6 +16,7 @@ enum TokenType {
     STAR,
     SLASH,
     DOT,
+    DOT2,
     // bracers
     LEFT_ROUND_BR,
     LEFT_FIG_BR,
@@ -29,13 +30,14 @@ enum TokenType {
     LESS,
     LESS_EQ,
     EXCL, // !
-    EXCL_EQ,
+    NOT_EQ,
     // keywords
     AND,
     OR,
     CLASS,
     ELSE,
     BOOL_TRUE,
+    BOOL_FALSE,
     FUN,
     FOR,
     IF,
@@ -44,8 +46,6 @@ enum TokenType {
     RETURN,
     SUPER,
     THIS,
-    TRUE,
-    BOOL_FALSE,
     VAR,
     WHILE,
     // utils
