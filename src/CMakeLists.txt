@@ -9,6 +9,8 @@ add_compile_options(-Wall)
 
 add_executable(
     tt
+    scan/scanner.h
+    scan/scanner.cpp
     lang.cpp
 )
 

@@ -1,5 +1,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <string>
+#include "scan/scanner.h"
 
 namespace opt = boost::program_options;
 
@@ -8,6 +10,9 @@ using namespace std;
 int main(int argc, char* argv[]) {
     opt::options_description desc("All options");
     
+    string src("src\n");
+    run(src);
+
     string prm_name;
     
     desc.add_options()
