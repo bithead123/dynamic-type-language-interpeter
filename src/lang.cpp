@@ -14,9 +14,13 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     opt::options_description desc("All options");
-    
-    Lang::Log(WARNING, "ev is ok\n");
 
+    string src("op98090-==12d0-");
+    Scanner sc;
+    sc.get_tokens(src);
+
+
+        /*
     string prm_name;
     
     desc.add_options()
@@ -35,6 +39,7 @@ int main(int argc, char* argv[]) {
     if (opt_map.count("help")) {
         std::cout << desc;
     }
+*/
 
     printf("end ok!\n");
 }

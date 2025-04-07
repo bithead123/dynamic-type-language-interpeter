@@ -35,7 +35,7 @@ enum TokenType {
     OR,
     CLASS,
     ELSE,
-    FALSE,
+    BOOL_TRUE,
     FUN,
     FOR,
     IF,
@@ -45,7 +45,7 @@ enum TokenType {
     SUPER,
     THIS,
     TRUE,
-    FALSE,
+    BOOL_FALSE,
     VAR,
     WHILE,
     // utils
@@ -58,4 +58,7 @@ class Token {
         TokenType _type;
         void* _literal;
         int _line;  
+
+
+
 };
