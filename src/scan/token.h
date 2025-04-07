@@ -55,5 +55,7 @@ enum TokenType {
 class Token {
     private:
         std::string _lex;
-                
+        TokenType _type;
+        void* _literal;
+        int _line;  
 };

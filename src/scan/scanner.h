@@ -6,7 +6,7 @@ class Scanner {
     private:
     int _pos;
     int _sourceLen;
-
+    public:
 
 };
 

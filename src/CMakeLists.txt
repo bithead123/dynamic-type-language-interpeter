@@ -11,6 +11,7 @@ add_executable(
     tt
     scan/scanner.h
     scan/scanner.cpp
+    lang.h
     lang.cpp
 )
 
