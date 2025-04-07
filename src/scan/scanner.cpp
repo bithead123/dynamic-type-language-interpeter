@@ -55,7 +55,36 @@ public:
     }
   };
 
+  void skip(string to_skip) {
+    char t = next();
+    while(t != EOF) {
+        if (to_skip.find_first_of(t, 0) != string::npos) {
+            t = next();
+        }
+        else {
+            return;
+        }
+    }
+  }
+
   void set(size_t pos) { _current = pos; };
+};
+
+bool _is_space(char t) {
+    switch (t)
+    {
+    case '\r':
+    case '\t':
+    case ' ':
+        return true;
+    
+    default:
+        return false;
+    }
+};
+
+bool _is_endline(char t) {
+    return t == '\n';
 };
 
 bool _is_alpha(char t) {
@@ -74,11 +103,15 @@ bool _literal_int(string &s, ScanBuff &bf) {
     if (cur == '.' && !dot_ex) {
       s.append(1, cur);
       dot_ex = true;
-    } else if (isalnum(cur)) {
+    } else if (_is_num(cur)) {
       s.append(1, cur);
       sz++;
-    } else {
+    } else if (_is_space(cur) || _is_endline(cur)) {
       break;
+    }
+    else {
+        bf.set(old);
+        return false;
     }
   }
 
@@ -144,6 +177,7 @@ bool _identifier(string &s, ScanBuff &bf) {
   if (sz > 0) {
     return true;
   } else
+    bf.set(old);
     return false;
 }
 
@@ -180,14 +214,14 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
         return true;
 
     case '>':
-    if (next == '=') type = GREATER_EQ;
-    type = GREATER;
-    return true;
+        if (next == '=') type = GREATER_EQ;
+        type = GREATER;
+        return true;
 
     case '!':
-    if (next == '=') type = NOT_EQ;
-    type = EXCL;
-    return true;
+        if (next == '=') type = NOT_EQ;
+        type = EXCL;
+        return true;
 
     // math
   case '+':
@@ -204,6 +238,7 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
     return true;
 
     case '=':
+    if (next == '=') type = EQ_EQ;
     type = EQ;
     return true;
     
@@ -237,25 +272,62 @@ bool is_keyword(string& s) {
     else return false;
 };
 
+std::vector<Token*> Scanner::get_tokens(std::string &src) {
 
-
-/*
-    math
-    bracers
-    eq
-
-
-*/
-
-std::vector<Token> Scanner::get_tokens(std::string &src) {
-
-  vector<Token> ls;
-
+  vector<Token*> ls;
   ScanBuff sb(src);
   string current;
 
-  if (_identifier(current, sb)) {
-    Lang::Log(WARNING, "%s\n", current.c_str());
+  int line = 0;
+  while(true) {
+    // long->short
+    
+    sb.skip(" \t\r");
+
+    // literals
+    if (_literal_int(current, sb)) {
+        ls.push_back(new Token(current, LITERAL_INT, NULL, line));
+        continue;
+    }
+    else if (_literal_string(current, sb)) {
+        ls.push_back(new Token(current, LITERAL_STRING, NULL, line));
+        continue;
+    }
+
+
+    if (_identifier(current, sb)) {
+        if (is_keyword(current)) {
+            auto type = _keywords[current.c_str()];
+            ls.push_back(new Token(current,type, NULL, line));
+            continue;
+        } else {
+            ls.push_back(new Token(current, IDENTIFIER, NULL, line));
+            continue;
+        } 
+    }
+
+    TokenType type;
+    if (_single_or_two_chars_token(type, sb)) {
+        ls.push_back(new Token(current, type, NULL, line));
+        continue;
+    }
+
+    char c = sb.next();
+    if (_is_space(c)) {
+        continue;
+    }
+    else if (_is_endline(c)) {
+        line++;
+        continue;
+    }
+    else if (c == EOF) {
+        Lang::Log(WARNING, "Parsing ok.\n");
+        break;
+    } 
+    
+    // error there
+    Lang::Log(ERROR, "Unexpected symbol at %i:%i, got: '%c'\n", line, sb.get_pos(), c);
+    break;
   }
 
   return ls;

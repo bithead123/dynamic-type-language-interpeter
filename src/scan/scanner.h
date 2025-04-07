@@ -9,5 +9,5 @@ class Scanner {
     int _pos;
     int _sourceLen;
     public:
-    std::vector<Token> get_tokens(std::string& source);
+    std::vector<Token*> get_tokens(std::string& source);
 };

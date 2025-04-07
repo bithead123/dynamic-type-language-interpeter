@@ -15,7 +15,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     opt::options_description desc("All options");
 
-    string src("op98090-==12d0-");
+    string src("123.123!= <= >= AFTER nin 123d-=e and or");
     Scanner sc;
     sc.get_tokens(src);
 
