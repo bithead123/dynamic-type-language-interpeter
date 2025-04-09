@@ -3,14 +3,12 @@
 #include <string>
 #include "scan/scanner.h"
 #include "lang.h"
+#include "expr/expr.h"
+#include "tools/ast_printer.h"
 
 namespace opt = boost::program_options;
 
 using namespace std;
-
-
-
-
 
 int main(int argc, char* argv[]) {
     opt::options_description desc("All options");
@@ -19,6 +17,13 @@ int main(int argc, char* argv[]) {
     Scanner sc;
     sc.get_tokens(src);
 
+    Expr* ex = new Binary(new Literal(new Token("123", LITERAL_INT, nullptr, 0)),
+        new Literal(new Token("402", LITERAL_INT, nullptr, 0)),
+        new Token("-", MINUS, nullptr, 0));
+
+    printf("dump: '%s'\n", ex->as_string().c_str());
+
+    //AstPrinter pr;
 
         /*
     string prm_name;

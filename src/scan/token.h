@@ -63,4 +63,8 @@ class Token {
         Token(std::string lex, TokenType type, void* literal, int line) 
         : _lex(lex), _type(type), _literal(literal), _line(line){};
 
+        std::string get_lex() {
+            return _lex;
+        };
+
 };

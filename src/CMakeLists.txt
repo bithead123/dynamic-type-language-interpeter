@@ -13,6 +13,11 @@ add_executable(
     scan/scanner.cpp
     lang.h
     lang.cpp
+    expr/expr.h
+    expr/expr.cpp
+    tools/dump.h
+    tools/ast_printer.h
+    tools/ast_printer.cpp
 )
 
 target_include_directories(tt PRIVATE ${Boost_INCLUDE_DIRS})
