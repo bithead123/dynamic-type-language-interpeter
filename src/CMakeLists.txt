@@ -15,7 +15,6 @@ add_executable(
     lang.cpp
     expr/expr.h
     expr/expr.cpp
-    tools/dump.h
     tools/ast_printer.h
     tools/ast_printer.cpp
 )

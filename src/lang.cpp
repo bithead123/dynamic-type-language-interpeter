@@ -21,7 +21,9 @@ int main(int argc, char* argv[]) {
         new Literal(new Token("402", LITERAL_INT, nullptr, 0)),
         new Token("-", MINUS, nullptr, 0));
 
-    printf("dump: '%s'\n", ex->as_string().c_str());
+    AstPrinter as;
+    auto s = as.print(ex);
+    cout << s.c_str();
 
     //AstPrinter pr;
 

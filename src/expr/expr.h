@@ -3,11 +3,24 @@
 #include <string>
 #include "../scan/token.h"
 #include <boost/optional.hpp>
-#include "../tools/dump.h"
+
+class Binary;
+class Grouping;
+class Unary;
+class Literal;
+
+template<typename T>
+class IVisitor {
+    public:
+    virtual T visit_binary(Binary* bin) = 0;
+    virtual T visit_grouping(Grouping* group) = 0;
+    virtual T visit_unary(Unary* unary) = 0;
+    virtual T visit_literal(Literal* lit) = 0;
+};
 
 class Expr {
     public:
-        virtual std::string as_string() = 0;
+    virtual std::string accept(IVisitor<std::string>& v) = 0;
 };
 
 
@@ -16,8 +29,8 @@ class Grouping : public Expr {
         Expr* expr;
         Grouping(Expr* exp) : expr(exp) {};
         
-        std::string as_string() override {
-            return expr->as_string();
+        std::string accept(IVisitor<std::string>& v)  {
+            return v.visit_grouping(this);
         };
 };
 
@@ -28,8 +41,8 @@ class Binary : public Expr {
         Token* oper;
         Binary(Expr* l, Expr* r, Token* op) : left(l), right(r), oper(op) {};
         
-        std::string as_string() override {
-            return tools::dump::parenthesize(oper->get_lex(), {left, right});
+        std::string accept(IVisitor<std::string>& v) {
+           return v.visit_binary(this);
         };
     };
 
@@ -39,8 +52,8 @@ class Unary : public Expr {
         Expr* expr;
         Unary(Expr* expr, Token* operat) : expr(expr), oper(operat) {};
         
-        std::string as_string() override {
-            return tools::dump::parenthesize(oper->get_lex(), {expr});
+        std::string accept(IVisitor<std::string>& v){
+            return v.visit_unary(this);
         };
 };
 
@@ -51,22 +64,9 @@ class Literal : public Expr {
             this->token = tk;
         };
 
-        std::string as_string() override {
-            if (token == nullptr) {
-                return "None";
-            }
-            else {
-                return token->get_lex();
-            }
+        std::string accept(IVisitor<std::string>& v) {
+            return v.visit_literal(this);
         };
 };
 
-/*
-template<typename T>
-class IVisitor {
-    virtual T visit_binary(Binary* bin) = 0;
-    virtual T visit_grouping(Grouping* group) = 0;
-    virtual T visit_unary(Unary* unary) = 0;
-    virtual T visit_literal(Literal* lit) = 0;
-};
-*/
+
