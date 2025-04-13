@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     if (ex != NULL) {
         AstPrinter as;
         auto s = as.print(ex);
-        cout << s.c_str();
+        cout << s.c_str() << '\n';
     }
 
     

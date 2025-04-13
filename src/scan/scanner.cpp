@@ -105,7 +105,11 @@ bool _is_endline(char t) {
 };
 
 bool _is_end_instr(char t) {
-  return t == ';';
+  return t == ';' || t == ')';
+};
+
+bool _is_delimiter(char t) {
+  return t == ',';
 };
 
 bool _is_alpha(char t) {
@@ -128,7 +132,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
     } else if (_is_num(cur)) {
       s.append(1, cur);
       sz++;
-    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_end_instr(cur) || !bf.can_read()) {
+    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_delimiter(cur) || _is_end_instr(cur) || !bf.can_read()) {
       break;
     }
     else {

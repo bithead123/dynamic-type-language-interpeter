@@ -50,4 +50,28 @@ class AstPrinter : IVisitor<string> {
     string visit_grouping(Grouping* g) {
         return parenthesize("group", {g->expr});
     };
+
+    string visit_id(Identifier* g) {
+        string s(g->token->get_lex());
+        return g->token->get_lex();
+    };
+
+    string visit_call(FunctionCall* g) {
+        string s(g->token->get_lex());
+        if (g->args.size() == 0) {
+            s.append("()");
+        }
+        else {
+            s.append(1, '(');
+            
+            for (auto &ar : g->args) {
+                auto arg_str = ar->accept(*this);
+                s.append(arg_str);
+                s.append(1, ',');
+            }
+            s.append(1, ')');
+        }
+
+        return s;
+    };
 };

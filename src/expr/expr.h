@@ -8,6 +8,8 @@ class Binary;
 class Grouping;
 class Unary;
 class Literal;
+class Identifier;
+class FunctionCall;
 
 template<typename T>
 class IVisitor {
@@ -16,6 +18,8 @@ class IVisitor {
     virtual T visit_grouping(Grouping* group) = 0;
     virtual T visit_unary(Unary* unary) = 0;
     virtual T visit_literal(Literal* lit) = 0;
+    virtual T visit_id(Identifier* lit) = 0;
+    virtual T visit_call(FunctionCall* lit) = 0;
 };
 
 class Expr {
@@ -69,4 +73,33 @@ class Literal : public Expr {
         };
 };
 
+class Identifier : public Expr {
+    public:
+        Token* token;
 
+        Identifier(Token* tk) {
+            this->token = tk;
+        };
+
+        std::string accept(IVisitor<std::string>& v) {
+            return v.visit_id(this);
+        };
+};
+
+class FunctionCall : public Expr {
+    public:
+        Token* token;
+        std::vector<Expr*> args;
+
+        FunctionCall(Token* tk) {
+            this->token = tk;
+        };
+
+        void add_arg(Expr* t) {
+            args.push_back(t);
+        };
+
+        std::string accept(IVisitor<std::string>& v) {
+            return v.visit_call(this);
+        };
+};

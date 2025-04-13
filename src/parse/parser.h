@@ -116,8 +116,24 @@ class Parser {
 
 
     Expr* expression() {
-        return equality();
+        return comma();
     };
+
+    Expr* comma() {
+        Expr* left = equality();
+
+        while(match({TokenType::COMMA})) {
+            Token* op = current();
+            move_next();
+            Expr* right = equality();
+            if (!verify(right, "Expected right expression in <comma>\n")) {
+                return NULL;
+            }
+            return new Binary(left, right, op);
+        }
+
+        return left;
+    }
 
     Expr* equality() {
         Expr* left = comparison();
@@ -206,7 +222,44 @@ class Parser {
         else if (match({TokenType::BOOL_TRUE})) ex = new Literal(curr);
         else if (match({TokenType::NONE})) ex = new Literal(curr);
         else if (match({TokenType::LITERAL_STRING, TokenType::LITERAL_INT})) ex = new Literal(curr);
+        else if (match({TokenType::IDENTIFIER})) {
+            // parse fn call
+            move_next();
+            if (match({TokenType::LEFT_ROUND_BR})) {
+                move_next();
+                
+                if (match({TokenType::RIGHT_ROUND_BR})) {
+                    ex = new FunctionCall(curr);
+                }
+                else {
+                    // parse args
+                    FunctionCall* call = new FunctionCall(curr);
+                    while(true) {
+                        Expr* arg = equality();
+                        if (arg != NULL) 
+                            call->add_arg(arg);
+    
+                        if (match({TokenType::COMMA}) == true) move_next();
+                        else break;
+                    }
+    
+                    move_back();
+                    if (!match({TokenType::RIGHT_ROUND_BR})) {
+                        auto cur2 = current();
+                        printf("Expect close ')' after fn call, but current is '%s'\n", cur2->get_lex().c_str());
+                    }
+    
+                    ex = call;
+                }
+            }
+            else {
+                ex = new Identifier(curr);
+            }
+            
+        }
+        // open tag
         else if (match({TokenType::LEFT_ROUND_BR})) {
+            printf("LEFT BR\n");
             auto expr = expression();
             if (!match({TokenType::RIGHT_ROUND_BR})) {
                 // error
@@ -217,6 +270,8 @@ class Parser {
 
         if (ex == NULL) {
             // error
+            auto cur3 = current();
+            printf("CURR3=%s\n", cur3->get_lex().c_str());
             verify(ex, "Expected expression in <Primary>\n");
             return NULL;
         }
