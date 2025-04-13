@@ -12,6 +12,23 @@ class Parser {
     size_t _currentPos;
     size_t _endPos;
     
+    bool verify(Token* pt, const char* msg) {
+        if (pt == NULL) {
+            Lang::Log(ERROR, msg);
+            return false;
+        }
+
+        return true;
+    };
+
+    bool verify(Expr* ptr, const char* msg) {
+        if (ptr == NULL) {
+            Lang::Log(ERROR, msg);
+            return false;
+        }
+
+        return true;
+    };
 
     Token* prev() {
         if (_currentPos > 0) {
@@ -89,6 +106,8 @@ class Parser {
                 return true;
             }
         };
+
+        return false;
     };
 
 
@@ -114,6 +133,7 @@ class Parser {
 
         while(match({TokenType::LESS, TokenType::LESS_EQ, TokenType::GREATER, TokenType::GREATER_EQ})) {
             Token* op = current();
+            printf("OP=%s lex=%s\n", op->get_name(), op->get_lex().c_str());
             move_next();
             Expr* right = term();
             return new Binary(left, right, op);
@@ -150,8 +170,10 @@ class Parser {
     Expr* unary() {
         if (match({TokenType::EXCL, TokenType::MINUS})) {
             Token* op = current();
+            verify(op, "Token is NULL\n");
             move_next();
             Expr* right = unary();
+            verify(right, "right is NULL\n");
             return new Unary(right, op);
         }
 
@@ -164,17 +186,15 @@ class Parser {
 
         if (match({TokenType::BOOL_FALSE})) ex = new Literal(curr);
         else if (match({TokenType::BOOL_TRUE})) ex = new Literal(curr);
-        else if (match({TokenType::NONE})) return new Literal(curr);
-
-        if (match({TokenType::LITERAL_STRING, TokenType::LITERAL_INT})) ex = new Literal(curr);
-        
-        if (match({TokenType::LEFT_ROUND_BR})) {
-            auto expr = NULL;//fix
+        else if (match({TokenType::NONE})) ex = new Literal(curr);
+        else if (match({TokenType::LITERAL_STRING, TokenType::LITERAL_INT})) ex = new Literal(curr);
+        else if (match({TokenType::LEFT_ROUND_BR})) {
+            auto expr = expression();
             if (!match({TokenType::RIGHT_ROUND_BR})) {
                 // error
             }
 
-            ex = new Grouping(ex);
+            ex = new Grouping(expr);
         }
 
         if (ex == NULL) {

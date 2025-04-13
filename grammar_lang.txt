@@ -7,7 +7,9 @@ binary: expression operator expression;
 operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/";
 
 V2
-expression: equality
+
+
+expression: binary | equality
 equality: comparison (( "!=" | "==" ) comparison)* ;
 comparison: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term: factor ( "+" | "-" factor )* ;

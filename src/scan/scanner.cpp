@@ -118,6 +118,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
 
   size_t old = bf.get_pos();
   size_t sz = 0;
+  s.clear();
 
   bool dot_ex = false;
   for (char cur = bf.next(); cur != EOF; cur = bf.next()) {
@@ -148,6 +149,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
 bool _literal_string(string &s, ScanBuff &bf) {
   size_t old = bf.get_pos();
   size_t sz = 0;
+  s.clear();
 
   char cur = bf.next();
   if (cur != '"') {
@@ -184,6 +186,7 @@ bool _identifier(string &s, ScanBuff &bf) {
 
   size_t old = bf.get_pos();
   size_t sz = 0;
+  s.clear();
 
   auto _is_id_symbol = [](char t) {
     return _is_alpha(t) || _is_num(t) || (t == '_');
@@ -204,11 +207,14 @@ bool _identifier(string &s, ScanBuff &bf) {
     return false;
 }
 
-bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
+bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
   char cur = bf.next();
   if (cur == EOF) {
     return false;
   }
+
+  s.clear();
+  s.append(1, cur);
 
   char next = bf.next();
 
@@ -238,20 +244,26 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
     case '<':
         if (next == '=') {
           type = LESS_EQ;
-          //bf.next();
+          s.append(1, next);
         }
         type = LESS;
         bf.back(1);
         return true;
 
     case '>':
-        if (next == '=') type = GREATER_EQ;
+        if (next == '=') {
+          type = GREATER_EQ;
+          s.append(1, next);
+        }
         type = GREATER;
         bf.back(1);
         return true;
 
     case '!':
-        if (next == '=') type = NOT_EQ;
+        if (next == '=') {
+          type = NOT_EQ;
+          s.append(1, next);
+        }
         type = EXCL;
         bf.back(1);
         return true;
@@ -275,7 +287,10 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
     return true;
 
     case '=':
-    if (next == '=') type = EQ_EQ;
+    if (next == '=') {
+      type = EQ_EQ;
+      s.append(1, next);
+    }
     type = EQ;
     bf.back(1);
     return true;
@@ -304,6 +319,8 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
     type = _ERROR;
     if (next != EOF) bf.back(2); 
     else bf.back(1); 
+
+    s.clear();
     return false;
   }
 }
@@ -351,7 +368,7 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
     }
 
     TokenType type;
-    if (_single_or_two_chars_token(type, sb)) {
+    if (_single_or_two_chars_token(current, type, sb)) {
         ls.push_back(new Token(current, type, NULL, line));
         if (!sb.can_read()) break;
         continue;
