@@ -244,6 +244,11 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
     bf.back(1);
     return true;
 
+    case '?':
+    type = QUESTION;
+    bf.back(1);
+    return true;
+
     // eq
     case '<':
         if (next == '=') {

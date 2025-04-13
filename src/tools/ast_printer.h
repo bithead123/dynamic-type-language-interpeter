@@ -56,6 +56,18 @@ class AstPrinter : IVisitor<string> {
         return g->token->get_lex();
     };
 
+    string visit_conditional(Conditional* g) {
+        string s("(");
+        s.append(g->cond->accept(*this));
+        s.append(" ? ");
+        s.append(g->then->accept(*this));
+        s.append(" : ");
+        s.append(g->els->accept(*this));
+        s.append(")");
+
+        return s;
+    };
+
     string visit_call(FunctionCall* g) {
         string s(g->token->get_lex());
         if (g->args.size() == 0) {

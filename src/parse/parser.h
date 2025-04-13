@@ -116,8 +116,38 @@ class Parser {
 
 
     Expr* expression() {
-        return comma();
+        auto e = conditional();
+        if (!e) e = comma();
+        return e;
     };
+
+    Expr* conditional() {
+        Expr* left = equality();
+
+        if (match({TokenType::QUESTION})) {
+            move_next();
+            Expr* then = expression();
+            if (!verify(then, "Expect a expression after '?' in <conditional>\n")) {
+                return NULL;
+            }
+
+            if (match({TokenType::DOT2})) {
+                move_next();
+                Expr* els = conditional();
+                if (!verify(els, "Expect a expression after ':' in <conditional>\n")) {
+                    return NULL;
+                }
+
+                return new Conditional(left, els, then);
+            }
+
+            printf("Can't parse  structure <conditional>\n");
+            
+            return NULL;
+        }
+
+        return left;
+    }
 
     Expr* comma() {
         Expr* left = equality();
@@ -138,7 +168,7 @@ class Parser {
     Expr* equality() {
         Expr* left = comparison();
 
-        while(match({TokenType::EQ, TokenType::NOT_EQ})) {
+        while(match({TokenType::EQ_EQ, TokenType::NOT_EQ})) {
             Token* op = current();
             move_next();
             Expr* right = comparison();
@@ -243,7 +273,7 @@ class Parser {
                         else break;
                     }
     
-                    move_back();
+                    //move_next();
                     if (!match({TokenType::RIGHT_ROUND_BR})) {
                         auto cur2 = current();
                         printf("Expect close ')' after fn call, but current is '%s'\n", cur2->get_lex().c_str());
@@ -253,9 +283,9 @@ class Parser {
                 }
             }
             else {
+                move_back();
                 ex = new Identifier(curr);
             }
-            
         }
         // open tag
         else if (match({TokenType::LEFT_ROUND_BR})) {
@@ -270,8 +300,6 @@ class Parser {
 
         if (ex == NULL) {
             // error
-            auto cur3 = current();
-            printf("CURR3=%s\n", cur3->get_lex().c_str());
             verify(ex, "Expected expression in <Primary>\n");
             return NULL;
         }

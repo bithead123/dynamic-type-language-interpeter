@@ -10,6 +10,7 @@ class Unary;
 class Literal;
 class Identifier;
 class FunctionCall;
+class Conditional;
 
 template<typename T>
 class IVisitor {
@@ -20,6 +21,7 @@ class IVisitor {
     virtual T visit_literal(Literal* lit) = 0;
     virtual T visit_id(Identifier* lit) = 0;
     virtual T visit_call(FunctionCall* lit) = 0;
+    virtual T visit_conditional(Conditional* lit) = 0;
 };
 
 class Expr {
@@ -101,5 +103,19 @@ class FunctionCall : public Expr {
 
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_call(this);
+        };
+};
+
+class Conditional : public Expr {
+    public:
+        Expr* cond;
+        Expr* els;
+        Expr* then;
+
+        Conditional(Expr* cond, Expr* els, Expr* then) : cond(cond), els(els), then(then) {
+        };
+
+        std::string accept(IVisitor<std::string>& v) {
+            return v.visit_conditional(this);
         };
 };

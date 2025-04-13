@@ -24,6 +24,7 @@ enum TokenType {
     RIGHT_ROUND_BR,
     RIGHT_FIG_BR,
     // eq
+    QUESTION,
     EQ,
     EQ_EQ,
     GREATER_EQ,
@@ -94,6 +95,7 @@ static std::map<TokenType, const char*> token_names {
     {THIS, "this"},
     {VAR, "var"},
     {WHILE, "while"},
+    {QUESTION, "question"},
     // utils
     {EOF_, "eof"}
 };

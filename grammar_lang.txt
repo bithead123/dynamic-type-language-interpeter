@@ -9,7 +9,8 @@ operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/";
 V2
 
 
-expression: comma
+expression: comma | conditional
+conditional: equality ( "?" expression ":" conditional )?
 comma: equality (( "," ) equality )*
 equality: comparison (( "!=" | "==" ) comparison)* ;
 comparison: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
