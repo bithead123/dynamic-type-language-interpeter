@@ -12,6 +12,10 @@ class Parser {
     size_t _currentPos;
     size_t _endPos;
     
+    void sync_to_next() {
+
+    };
+
     bool verify(Token* pt, const char* msg) {
         if (pt == NULL) {
             Lang::Log(ERROR, msg);
@@ -122,6 +126,9 @@ class Parser {
             Token* op = current();
             move_next();
             Expr* right = comparison();
+            if (!verify(right, "Expected right expression in <equality>\n")) {
+                return NULL;
+            }
             return new Binary(left, right, op);
         }
 
@@ -133,9 +140,12 @@ class Parser {
 
         while(match({TokenType::LESS, TokenType::LESS_EQ, TokenType::GREATER, TokenType::GREATER_EQ})) {
             Token* op = current();
-            printf("OP=%s lex=%s\n", op->get_name(), op->get_lex().c_str());
+            //printf("OP=%s lex=%s\n", op->get_name(), op->get_lex().c_str());
             move_next();
             Expr* right = term();
+            if (!verify(right, "Expected right expression in <comparison>\n")) {
+                return NULL;
+            }
             return new Binary(left, right, op);
         }
 
@@ -148,6 +158,9 @@ class Parser {
             Token* op = current();
             move_next();
             Expr* right = factor();
+            if (!verify(right, "Expected right expression in <term>\n")) {
+                return NULL;
+            }
             return new Binary(left, right, op);
         }
         
@@ -161,6 +174,9 @@ class Parser {
             Token* op = current();
             move_next();
             Expr* right = unary();
+            if (!verify(right, "Expected right expression in <factor>\n")) {
+                return NULL;
+            }
             return new Binary(left, right, op);
         }
 
@@ -173,7 +189,9 @@ class Parser {
             verify(op, "Token is NULL\n");
             move_next();
             Expr* right = unary();
-            verify(right, "right is NULL\n");
+            if (!verify(right, "Expected right expression in <unary>\n")) {
+                return NULL;
+            }
             return new Unary(right, op);
         }
 
@@ -199,6 +217,7 @@ class Parser {
 
         if (ex == NULL) {
             // error
+            verify(ex, "Expected expression in <Primary>\n");
             return NULL;
         }
 

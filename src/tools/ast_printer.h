@@ -28,8 +28,6 @@ class AstPrinter : IVisitor<string> {
     };
 
     string visit_binary(Binary* bin) {
-        printf("BINARY\n");
-        printf("op=%s\n", bin->oper->get_lex().c_str());
         return parenthesize(bin->oper->get_lex(), {bin->left, bin->right});
     };
 

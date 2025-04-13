@@ -13,3 +13,10 @@
 - строка
 - оффсет
 - что прибавилось
+Это событие можно обработать на уровне парсера
+
+PARSER
+1) parsing tokens
+2) panic mode
+3) sync changes
+4) notifies.

@@ -245,6 +245,7 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
         if (next == '=') {
           type = LESS_EQ;
           s.append(1, next);
+          return true;
         }
         type = LESS;
         bf.back(1);
@@ -254,6 +255,7 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
         if (next == '=') {
           type = GREATER_EQ;
           s.append(1, next);
+          return true;
         }
         type = GREATER;
         bf.back(1);
@@ -263,6 +265,7 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
         if (next == '=') {
           type = NOT_EQ;
           s.append(1, next);
+          return true;
         }
         type = EXCL;
         bf.back(1);
@@ -290,6 +293,7 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
     if (next == '=') {
       type = EQ_EQ;
       s.append(1, next);
+      return true;
     }
     type = EQ;
     bf.back(1);
@@ -354,7 +358,6 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
       ls.push_back(new Token(current, LITERAL_STRING, NULL, line));
         continue;
     }
-
 
     if (_identifier(current, sb)) {
         if (is_keyword(current)) {
