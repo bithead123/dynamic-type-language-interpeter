@@ -5,6 +5,8 @@
 #include "lang.h"
 #include "expr/expr.h"
 #include "tools/ast_printer.h"
+#include "tools/prn_visitor.h"
+#include "tools/token_print.h"
 
 namespace opt = boost::program_options;
 
@@ -13,9 +15,11 @@ using namespace std;
 int main(int argc, char* argv[]) {
     opt::options_description desc("All options");
 
-    string src("123.123!= <= >= AFTER nin 123d-=e and or");
+    string src("123-50;g=apple-50\n");
     Scanner sc;
-    sc.get_tokens(src);
+    auto toks = sc.get_tokens(src);
+    tools::print_tokens(toks, cout, ' ');
+
 
     Expr* ex = new Binary(new Literal(new Token("123", LITERAL_INT, nullptr, 0)),
         new Literal(new Token("402", LITERAL_INT, nullptr, 0)),
@@ -25,6 +29,9 @@ int main(int argc, char* argv[]) {
     auto s = as.print(ex);
     cout << s.c_str();
 
+    PrnVisitor v;
+    string sss = v.make_prn(ex);    
+    cout << sss.c_str();
     //AstPrinter pr;
 
         /*
@@ -47,6 +54,4 @@ int main(int argc, char* argv[]) {
         std::cout << desc;
     }
 */
-
-    printf("end ok!\n");
 }

@@ -10,6 +10,7 @@ add_compile_options(-Wall)
 add_executable(
     tt
     scan/scanner.h
+    scan/token.h
     scan/scanner.cpp
     lang.h
     lang.cpp
@@ -17,6 +18,7 @@ add_executable(
     expr/expr.cpp
     tools/ast_printer.h
     tools/ast_printer.cpp
+    tools/token_print.h
 )
 
 target_include_directories(tt PRIVATE ${Boost_INCLUDE_DIRS})

@@ -62,6 +62,7 @@ public:
             t = next();
         }
         else {
+            back(1);
             return;
         }
     }
@@ -83,8 +84,26 @@ bool _is_space(char t) {
     }
 };
 
+bool _is_math(char t) {
+  switch (t)
+  {
+  case '+':
+  case '-':
+  case '*':
+  case '/':
+      return true;
+  
+  default:
+      return false;
+  }
+};
+
 bool _is_endline(char t) {
     return t == '\n';
+};
+
+bool _is_end_instr(char t) {
+  return t == ';';
 };
 
 bool _is_alpha(char t) {
@@ -106,7 +125,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
     } else if (_is_num(cur)) {
       s.append(1, cur);
       sz++;
-    } else if (_is_space(cur) || _is_endline(cur)) {
+    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_end_instr(cur)) {
       break;
     }
     else {
@@ -120,6 +139,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
     return false;
   }
 
+  bf.back(1);
   return true;
 };
 
@@ -175,6 +195,7 @@ bool _identifier(string &s, ScanBuff &bf) {
   }
 
   if (sz > 0) {
+    bf.back(1);
     return true;
   } else
     bf.set(old);
@@ -193,73 +214,91 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
     // bracers
     case '(':
     type = LEFT_ROUND_BR;
+    bf.back(1);
     return true;
 
     case '{':
     type = LEFT_FIG_BR;
+    bf.back(1);
     return true;
 
     case ')':
     type = RIGHT_ROUND_BR;
+    bf.back(1);
     return true;
 
     case '}':
     type = RIGHT_FIG_BR;
+    bf.back(1);
     return true;
 
     // eq
     case '<':
         if (next == '=') type = LESS_EQ;
         type = LESS;
+        bf.back(1);
         return true;
 
     case '>':
         if (next == '=') type = GREATER_EQ;
         type = GREATER;
+        bf.back(1);
         return true;
 
     case '!':
         if (next == '=') type = NOT_EQ;
         type = EXCL;
+        bf.back(1);
         return true;
 
     // math
   case '+':
     type = PLUS;
+    bf.back(1);
     return true;
   case '-':
     type = MINUS;
+    bf.back(1);
     return true;
     case '/':
     type = SLASH;
+    bf.back(1);
     return true;
     case '*':
     type = STAR;
+    bf.back(1);
     return true;
 
     case '=':
     if (next == '=') type = EQ_EQ;
     type = EQ;
+    bf.back(1);
     return true;
     
     case '.':
     type = DOT;
+    bf.back(1);
     return true;
 
     case ';':
     type = SEMICOLON;
+    bf.back(1);
     return true;
 
     case ':':
     type = DOT2;
+    bf.back(1);
     return true;
 
     case ',':
     type = COMMA;
+    bf.back(1);
     return true;
 
   default:
     type = _ERROR;
+    if (next != EOF) bf.back(2); 
+    else bf.back(1); 
     return false;
   }
 }
