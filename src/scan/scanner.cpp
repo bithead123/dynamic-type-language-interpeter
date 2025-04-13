@@ -1,8 +1,9 @@
 #include "scanner.h"
-#include "../lang.h"
+#include "../tools/log.h"
 #include <sstream>
 #include <string>
 #include <map>
+ #include <boost/filesystem.hpp>
 
 using namespace std;
 
@@ -32,16 +33,17 @@ private:
   size_t _capacity;
   string _buff;
 
-  bool can_read() { return _current < _capacity; }
-
 public:
   ScanBuff(string &source)
       : _current(0), _capacity(source.size()), _buff(source){};
 
   size_t get_pos() { return _current; };
 
+  bool can_read() { return _current < _capacity; }
+
   char next() {
     if (!can_read()) {
+      _current++;
       return EOF;
     } else {
       return _buff[_current++];
@@ -125,7 +127,7 @@ bool _literal_int(string &s, ScanBuff &bf) {
     } else if (_is_num(cur)) {
       s.append(1, cur);
       sz++;
-    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_end_instr(cur)) {
+    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_end_instr(cur) || !bf.can_read()) {
       break;
     }
     else {
@@ -234,7 +236,10 @@ bool _single_or_two_chars_token(TokenType &type, ScanBuff &bf) {
 
     // eq
     case '<':
-        if (next == '=') type = LESS_EQ;
+        if (next == '=') {
+          type = LESS_EQ;
+          //bf.next();
+        }
         type = LESS;
         bf.back(1);
         return true;
@@ -318,7 +323,7 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
   string current;
 
   int line = 0;
-  while(true) {
+  while(sb.can_read()) {
     // long->short
     
     sb.skip(" \t\r");
@@ -329,7 +334,7 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
         continue;
     }
     else if (_literal_string(current, sb)) {
-        ls.push_back(new Token(current, LITERAL_STRING, NULL, line));
+      ls.push_back(new Token(current, LITERAL_STRING, NULL, line));
         continue;
     }
 
@@ -348,6 +353,7 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
     TokenType type;
     if (_single_or_two_chars_token(type, sb)) {
         ls.push_back(new Token(current, type, NULL, line));
+        if (!sb.can_read()) break;
         continue;
     }
 
@@ -370,4 +376,20 @@ std::vector<Token*> Scanner::get_tokens(std::string &src) {
   }
 
   return ls;
+};
+
+
+std::string Scanner::read_file(const char* path) {
+  stringstream ss;
+  string line;
+  if (boost::filesystem::exists(path)) {
+    boost::filesystem::ifstream fs(path);
+    if (fs.good()) {
+      while(getline(fs, line)) {
+        ss << line;
+      }
+    }
+  }
+
+  return ss.str();
 };

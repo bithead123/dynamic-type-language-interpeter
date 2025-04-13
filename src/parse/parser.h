@@ -4,6 +4,7 @@
 #include "../expr/expr.h"
 #include "../scan/token.h"
 #include <initializer_list>
+#include "../tools/log.h"
 
 class Parser {
     private:
@@ -197,6 +198,17 @@ class Parser {
     public:
     Parser(std::vector<Token*>& v): _tokens(v), _currentPos(0), _endPos(v.size()) {};
 
+    Expr* parse() {
+        auto ex = expression();
+        if (ex == NULL) {
+            Lang::Log(LogLevel::ERROR, "can't parse expression\n");
+            return NULL;
+        }
+        
+        Lang::Log(LogLevel::INFO, "Parse ok\n");
+        
+        return ex;
+    };
 
 
 };

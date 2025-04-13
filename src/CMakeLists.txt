@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.2)
 project(lang_cpp)
 
-find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(Boost COMPONENTS filesystem program_options REQUIRED)
+#FIND_PACKAGE(Boost COMPONENTS  REQUIRED)
+
 
 include_directories(${Boost_INCLUDE_DIR})
 
@@ -9,10 +11,10 @@ add_compile_options(-Wall)
 
 add_executable(
     tt
-    scan/scanner.h
     scan/token.h
+    scan/scanner.h
     scan/scanner.cpp
-    lang.h
+    tools/log.h
     lang.cpp
     expr/expr.h
     expr/expr.cpp

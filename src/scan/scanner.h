@@ -10,4 +10,5 @@ class Scanner {
     int _sourceLen;
     public:
     std::vector<Token*> get_tokens(std::string& source);
+    std::string read_file(const char* path);
 };
