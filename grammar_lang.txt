@@ -1,0 +1,36 @@
+V1
+expression: literal | unary | binary | grouping;
+literal: NUMBER | STRING | "true" | "false" | "None";
+grouping: "(" expression ")";
+unary: ("-" | "!") expression;
+binary: expression operator expression;
+operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/";
+
+V2
+
+expression: comma | conditional
+conditional: equality ( "?" expression ":" conditional )?
+comma: equality (( "," ) equality )*
+equality: comparison (( "!=" | "==" ) comparison)* ;
+comparison: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term: factor ( "+" | "-" factor )* ;
+factor: unary ( "/" | "*" unary )* ;
+unary: ( "!" | "-") unary | primary;
+primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expression ")" ;   
+
+V3
+
+program: statement* EOF ;
+statement: exprStatement | printStatement ;
+exprStatement: expression ";" ;
+printStatement: "print" expression ";" ;
+
+expression: comma | conditional
+conditional: equality ( "?" expression ":" conditional )?
+comma: equality (( "," ) equality )*
+equality: comparison (( "!=" | "==" ) comparison)* ;
+comparison: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term: factor ( "+" | "-" factor )* ;
+factor: unary ( "/" | "*" unary )* ;
+unary: ( "!" | "-") unary | primary;
+primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expression ")" ;   
