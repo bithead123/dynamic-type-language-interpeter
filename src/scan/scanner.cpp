@@ -7,7 +7,7 @@
 
 using namespace std;
 
-map<const char*, TokenType> _keywords {
+map<std::string, TokenType> _keywords {
     {"and", AND},
     {"or", OR},
     {"class", CLASS},
@@ -126,18 +126,16 @@ bool _literal_int(string &s, ScanBuff &bf) {
 
   bool dot_ex = false;
   for (char cur = bf.next(); cur != EOF; cur = bf.next()) {
+    char next = bf.next();
+    bf.back(1);
     if (cur == '.' && !dot_ex) {
       s.append(1, cur);
       dot_ex = true;
     } else if (_is_num(cur)) {
       s.append(1, cur);
       sz++;
-    } else if (_is_space(cur) || _is_endline(cur) || _is_math(cur) || _is_delimiter(cur) || _is_end_instr(cur) || !bf.can_read()) {
+    } else {
       break;
-    }
-    else {
-        bf.set(old);
-        return false;
     }
   }
 
@@ -339,7 +337,7 @@ bool _single_or_two_chars_token(string& s, TokenType &type, ScanBuff &bf) {
 }
 
 bool is_keyword(string& s) {
-    auto fn = _keywords.find(s.c_str());
+    auto fn = _keywords.find(s);
     if (fn != end(_keywords)) {
         return true;
     }

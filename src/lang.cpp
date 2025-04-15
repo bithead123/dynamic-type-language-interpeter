@@ -8,6 +8,8 @@
 #include "tools/prn_visitor.h"
 #include "tools/token_print.h"
 #include "parse/parser.h"
+#include "backend/interpreter.h"
+#include "backend/obj.h"
 
 namespace opt = boost::program_options;
 
@@ -33,8 +35,15 @@ int main(int argc, char* argv[]) {
         cout << s.c_str() << '\n';
     }
 
-    
-
+    Interpreter pt;
+    ReturnObject out = pt.interpete(ex);
+    if (pt.good()) {
+        Lang::Log(INFO, "Interprrete is good.\n");
+        auto v = obj::to_str(out);
+        printf("OUT='%s'\n", v.c_str());
+    } else {
+        pt.dump_errors();
+    }
 
     //AstPrinter pr;
 

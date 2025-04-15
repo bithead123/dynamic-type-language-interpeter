@@ -21,6 +21,8 @@ add_executable(
     tools/ast_printer.h
     tools/ast_printer.cpp
     tools/token_print.h
+    backend/interpreter.h
+    backend/obj.h
 )
 
 target_include_directories(tt PRIVATE ${Boost_INCLUDE_DIRS})

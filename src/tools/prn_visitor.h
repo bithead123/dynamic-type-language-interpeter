@@ -7,7 +7,7 @@ using namespace std;
 class PrnVisitor : public IVisitor<string> {
     public:
         string make_prn(Expr* expr) {
-            expr->accept(*this);
+            return expr->accept(*this);
         } ;
 
         string visit_binary(Binary* b) {

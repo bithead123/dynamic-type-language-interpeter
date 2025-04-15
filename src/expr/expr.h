@@ -1,8 +1,22 @@
 #pragma once
 
+#include <boost/variant.hpp>
 #include <string>
 #include "../scan/token.h"
 #include <boost/optional.hpp>
+#include <boost/any.hpp>
+
+struct NoneType{};
+typedef boost::variant<NoneType, bool, double,  std::string> ReturnObject;
+
+template<typename CheckType>
+bool getVariant(const ReturnObject& v, CheckType& out) {
+    if (const CheckType* ptr = boost::get<CheckType>(&v)) {
+        out = *ptr;
+        return true;
+    }
+    return false;
+}
 
 class Binary;
 class Grouping;
@@ -27,6 +41,7 @@ class IVisitor {
 class Expr {
     public:
     virtual std::string accept(IVisitor<std::string>& v) = 0;
+    virtual ReturnObject inerpret(IVisitor<ReturnObject>& v) = 0;
 };
 
 
@@ -36,6 +51,10 @@ class Grouping : public Expr {
         Grouping(Expr* exp) : expr(exp) {};
         
         std::string accept(IVisitor<std::string>& v)  {
+            return v.visit_grouping(this);
+        };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
             return v.visit_grouping(this);
         };
 };
@@ -50,6 +69,10 @@ class Binary : public Expr {
         std::string accept(IVisitor<std::string>& v) {
            return v.visit_binary(this);
         };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+            return v.visit_binary(this);
+        };
     };
 
 class Unary : public Expr {
@@ -59,6 +82,10 @@ class Unary : public Expr {
         Unary(Expr* expr, Token* operat) : expr(expr), oper(operat) {};
         
         std::string accept(IVisitor<std::string>& v){
+            return v.visit_unary(this);
+        };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
             return v.visit_unary(this);
         };
 };
@@ -73,6 +100,10 @@ class Literal : public Expr {
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_literal(this);
         };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+            return v.visit_literal(this);
+        };
 };
 
 class Identifier : public Expr {
@@ -84,6 +115,10 @@ class Identifier : public Expr {
         };
 
         std::string accept(IVisitor<std::string>& v) {
+            return v.visit_id(this);
+        };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
             return v.visit_id(this);
         };
 };
@@ -104,6 +139,10 @@ class FunctionCall : public Expr {
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_call(this);
         };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+            return v.visit_call(this);
+        };
 };
 
 class Conditional : public Expr {
@@ -116,6 +155,10 @@ class Conditional : public Expr {
         };
 
         std::string accept(IVisitor<std::string>& v) {
+            return v.visit_conditional(this);
+        };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
             return v.visit_conditional(this);
         };
 };
