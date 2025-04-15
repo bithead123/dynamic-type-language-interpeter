@@ -28,22 +28,15 @@ int main(int argc, char* argv[]) {
 
     Parser ps(toks);
 
-    Expr* ex = ps.parse();
-    if (ex != NULL) {
-        AstPrinter as;
-        auto s = as.print(ex);
-        cout << s.c_str() << '\n';
-    }
+    vector<Statement*> ex = ps.parse();
+    AstPrinter as;
+    as.print(ex);
+
+
+    printf("has %i\n", ex.size());
 
     Interpreter pt;
-    ReturnObject out = pt.interpete(ex);
-    if (pt.good()) {
-        Lang::Log(INFO, "Interprrete is good.\n");
-        auto v = obj::to_str(out);
-        printf("OUT='%s'\n", v.c_str());
-    } else {
-        pt.dump_errors();
-    }
+    pt.interpete(ex);
 
     //AstPrinter pr;
 

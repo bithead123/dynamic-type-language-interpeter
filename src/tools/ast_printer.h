@@ -23,8 +23,11 @@ class AstPrinter : IVisitor<string> {
     };  
     
     public:
-    std::string print(Expr* expr) {
-        return expr->accept(*this);
+    void print(vector<Statement*>& t) {
+        for (auto &s : t) {
+            auto str= s->accept(*this);
+            printf("%s\n", str.c_str());
+        }
     };
 
     string visit_binary(Binary* bin) {
@@ -85,5 +88,18 @@ class AstPrinter : IVisitor<string> {
         }
 
         return s;
+    };
+
+    string visit_statement(Statement* s) {
+        string str("(stmt ");
+        if (s->expression) str.append(s->expression->accept(*this));
+        else {
+            str.append("Print ");
+            str.append(s->print->accept(*this));
+        }
+        
+        str.append(")");
+
+        return str;
     };
 };

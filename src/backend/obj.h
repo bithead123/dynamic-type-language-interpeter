@@ -33,6 +33,9 @@ namespace obj {
             getVariant<std::string>(t, v4);
             return v4;
     
+        case 4:
+            return "<void>";
+
         default:
             return "<emptyValue>";
         }

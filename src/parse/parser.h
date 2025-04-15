@@ -114,6 +114,48 @@ class Parser {
         return false;
     };
 
+    Statement* printStatement() {
+        if (match({TokenType::PRINT})) {
+            move_next();
+            auto ex = expression();
+            if (!verify(ex, "Expect expression after Print statement\n")) {
+                return NULL;
+            }
+
+            if (match({TokenType::SEMICOLON})) {
+                move_next();
+                return new Statement(NULL, ex);
+            }
+        }
+
+        return NULL;
+    };
+
+    Statement* exprStatement() {
+        auto ex = expression();
+        if (!verify(ex, "Expect an expression.\n")) {
+            return NULL;
+        }
+
+        if (match({TokenType::SEMICOLON})) {
+            move_next();
+            return new Statement(ex, NULL);
+        }
+
+        return NULL;
+    };
+
+    Statement* statement() {
+        Statement* exp = exprStatement();
+        if (exp == NULL) exp = printStatement();
+
+        if (!exp) {
+            Lang::Log(ERROR, "Expect expression in statement\n");
+            return NULL;
+        }
+
+        return exp;
+    }
 
     Expr* expression() {
         auto e = conditional();
@@ -320,16 +362,17 @@ class Parser {
     public:
     Parser(std::vector<Token*>& v): _tokens(v), _currentPos(0), _endPos(v.size()) {};
 
-    Expr* parse() {
-        auto ex = expression();
-        if (ex == NULL) {
-            Lang::Log(LogLevel::ERROR, "can't parse expression\n");
-            return NULL;
+    vector<Statement*> parse() {
+        vector<Statement*> v;
+        while(!at_end()) {
+            auto st = statement();
+            if (st) 
+                v.push_back(st); 
         }
-        
+
         Lang::Log(LogLevel::INFO, "Parse ok\n");
         
-        return ex;
+        return v;
     };
 
 

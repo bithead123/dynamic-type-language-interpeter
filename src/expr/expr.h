@@ -6,8 +6,9 @@
 #include <boost/optional.hpp>
 #include <boost/any.hpp>
 
+struct VoidType{};
 struct NoneType{};
-typedef boost::variant<NoneType, bool, double,  std::string> ReturnObject;
+typedef boost::variant<NoneType, bool, double,  std::string, VoidType> ReturnObject;
 
 template<typename CheckType>
 bool getVariant(const ReturnObject& v, CheckType& out) {
@@ -25,6 +26,7 @@ class Literal;
 class Identifier;
 class FunctionCall;
 class Conditional;
+class Statement;
 
 template<typename T>
 class IVisitor {
@@ -36,6 +38,7 @@ class IVisitor {
     virtual T visit_id(Identifier* lit) = 0;
     virtual T visit_call(FunctionCall* lit) = 0;
     virtual T visit_conditional(Conditional* lit) = 0;
+    virtual T visit_statement(Statement* statement) = 0;
 };
 
 class Expr {
@@ -160,5 +163,21 @@ class Conditional : public Expr {
 
         ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
             return v.visit_conditional(this);
+        };
+};
+
+class Statement : public Expr {
+    public:
+        Expr* expression;
+        Expr* print;
+
+        Statement(Expr* expr, Expr* print) : expression(expr), print(print) {};
+
+        std::string accept(IVisitor<std::string>& v) {
+            return v.visit_statement(this);
+        };
+
+        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+            return v.visit_statement(this);
         };
 };

@@ -1,1 +1,4 @@
-true == false
+10-5;
+print 10;
+10-5123;
+print 5;

@@ -39,4 +39,8 @@ class PrnVisitor : public IVisitor<string> {
         string visit_id(Identifier* g) {
             return g->token->get_lex();
         };
+
+        string visit_statement(Statement* g) {
+            return "";
+        };
     };

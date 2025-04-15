@@ -4,6 +4,7 @@
 #include  <boost/any.hpp>
 #include <boost/smart_ptr.hpp>
 #include <vector>
+#include "../backend/obj.h"
 
 using namespace std;
 
@@ -265,6 +266,33 @@ class Interpreter : IVisitor<ReturnObject> {
         return NoneType();
     }
 
+    ReturnObject visit_statement(Statement* t) {
+        if (t->expression) return t->expression->inerpret(*this);
+        else {
+            ReturnObject v = t->print->inerpret(*this);
+            if (check_operand<double>(v)) {
+                double _v;
+                getVariant<double>(v, _v);
+                printf("Print '%f'\n", _v);
+            }
+            else if (check_operand<bool>(v)) {
+                bool _v;
+                getVariant<bool>(v, _v);
+                if (_v) printf("Print True\n");
+                else printf("Print False\n");
+            }
+            else if (check_operand<NoneType>(v)) {
+                printf("Print None\n");
+            }
+            else {
+                Lang::Log(ERROR, "Can't resolve type in print statement\n"); 
+                return VoidType();
+            }
+
+            return VoidType();
+        }
+    }
+
     public:
     Interpreter() : _hadErrors(false) {};
 
@@ -275,14 +303,20 @@ class Interpreter : IVisitor<ReturnObject> {
         }
     }
 
-    ReturnObject interpete(Expr* e) {
-        ReturnObject ret = e->inerpret(*this);
+    ReturnObject interpete(vector<Statement*> s) {
         if (!good()) {
             printf("Bad interprete\n");
-            return NoneType();
+            dump_errors();
+            return VoidType();
         }
 
-        return ret;
+        for (auto &st : s) {
+            ReturnObject ret = st->inerpret(*this);
+            auto str = obj::to_str(ret);
+            printf("out: '%s'\n", str.c_str());
+        }
+
+        return VoidType();
     }
 
     bool good() {
