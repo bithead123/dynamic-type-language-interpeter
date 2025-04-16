@@ -93,8 +93,18 @@ class AstPrinter : IVisitor<string> {
     string visit_statement(Statement* s) {
         string str("(stmt ");
         if (s->expression) str.append(s->expression->accept(*this));
-        else {
-            str.append("Print ");
+        else if (s->varDecl) {
+            str.append("<VarDecl> "); // <VarDecl> a=
+            str.append(s->varDecl->name->get_lex());
+            str.append(" = ");
+            str.append(s->varDecl->initializer->accept(*this));
+        }
+        else if (s->varDefine) {
+            str.append("<VarDefine> ");
+            str.append(s->varDefine->name->get_lex());
+        }
+        else if (s->print) {
+            str.append("<Print> ");
             str.append(s->print->accept(*this));
         }
         

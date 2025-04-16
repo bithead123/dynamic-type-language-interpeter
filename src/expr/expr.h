@@ -27,6 +27,7 @@ class Identifier;
 class FunctionCall;
 class Conditional;
 class Statement;
+class VarDecl;
 
 template<typename T>
 class IVisitor {
@@ -39,6 +40,7 @@ class IVisitor {
     virtual T visit_call(FunctionCall* lit) = 0;
     virtual T visit_conditional(Conditional* lit) = 0;
     virtual T visit_statement(Statement* statement) = 0;
+    //virtual T visit_varDecl(VarDecl* t) = 0;
 };
 
 class Expr {
@@ -166,12 +168,28 @@ class Conditional : public Expr {
         };
 };
 
+class VarDecl {
+    public:
+    Token* name;
+    Expr* initializer;
+    VarDecl(Token* t, Expr* init) : name(t), initializer(init) {};
+};
+
+class VarDefine {
+    public:
+    Token* name;
+    VarDefine(Token* t) : name(t) {};
+};
+
+
 class Statement : public Expr {
     public:
         Expr* expression;
         Expr* print;
-
-        Statement(Expr* expr, Expr* print) : expression(expr), print(print) {};
+        VarDecl* varDecl;
+        VarDefine* varDefine;
+        
+        Statement() : expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL) {};
 
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_statement(this);
@@ -181,3 +199,4 @@ class Statement : public Expr {
             return v.visit_statement(this);
         };
 };
+

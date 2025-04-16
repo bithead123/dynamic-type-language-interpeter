@@ -114,6 +114,54 @@ class Parser {
         return false;
     };
 
+    Statement* declaration() {
+        Statement* s = varDecl();
+        if (s== NULL) s = statement();
+
+        if (!verify(s, "Unrecognized stmt declaration.\n")) {
+            return NULL;
+        }
+
+        return s;
+    };
+
+    Statement* varDecl() {
+        
+        if (match({TokenType::VAR})) {
+            move_next();
+            if (match({TokenType::IDENTIFIER})) {
+                Token* name = current();
+                move_next();
+
+                if (match({TokenType::EQ})) {
+                    move_next();
+                    Expr* init = expression();
+
+                    if (!verify(init, "Expect expression when init VarDecl\n")) {
+                        return NULL;
+                    }
+
+                    if (match({TokenType::SEMICOLON})) {
+                        move_next();
+                    
+                        Statement* s = new Statement();
+                        s->varDecl = new VarDecl(name, init);
+                        return s;
+                    }
+                }
+                else if (match({TokenType::SEMICOLON})) {
+                    move_next();
+
+                    Statement* s = new Statement();
+                    s->varDefine = new VarDefine(name);
+                    return s;
+                }
+            }
+        }
+
+        return NULL;
+    };
+
     Statement* printStatement() {
         if (match({TokenType::PRINT})) {
             move_next();
@@ -124,7 +172,9 @@ class Parser {
 
             if (match({TokenType::SEMICOLON})) {
                 move_next();
-                return new Statement(NULL, ex);
+                Statement* s= new Statement();
+                s->print = ex;
+                return s;
             }
         }
 
@@ -139,13 +189,16 @@ class Parser {
 
         if (match({TokenType::SEMICOLON})) {
             move_next();
-            return new Statement(ex, NULL);
+            Statement* s=  new Statement();
+            s->expression = ex;
+            return s;
         }
 
         return NULL;
     };
 
     Statement* statement() {
+
         Statement* exp = exprStatement();
         if (exp == NULL) exp = printStatement();
 
@@ -362,12 +415,15 @@ class Parser {
     public:
     Parser(std::vector<Token*>& v): _tokens(v), _currentPos(0), _endPos(v.size()) {};
 
-    vector<Statement*> parse() {
-        vector<Statement*> v;
+    std::vector<Statement*> parse() {
+        std::vector<Statement*> v;
         while(!at_end()) {
-            auto st = statement();
+            auto st = declaration();
             if (st) 
                 v.push_back(st); 
+            else {
+                break;
+            }
         }
 
         Lang::Log(LogLevel::INFO, "Parse ok\n");

@@ -1,4 +1,2 @@
-10-5;
-print 10;
-10-5123;
-print 5;
+var app = "good by click";
+print app;

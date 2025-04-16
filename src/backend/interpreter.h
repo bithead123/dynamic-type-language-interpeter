@@ -15,9 +15,60 @@ class RuntimeError {
     RuntimeError(string&& msg, int line): msg(msg), line(line) {};
 };
 
+class Environment {
+    std::map<std::string, ReturnObject> vars;
+    
+    void var_set(string& name, ReturnObject& value) {
+        vars[name] = value;
+    };
+
+    public:
+
+        ReturnObject var_get(std::string& name) {
+            return vars[name];
+        };
+
+        bool var_contains(std::string& name) {
+            if (vars.find(name) != end(vars)) return true;
+            else return false;
+        };
+
+        bool var_assign(std::string& name, ReturnObject& v, string& error_msg) {
+            if (!var_contains(name)) {
+                error_msg = "Variable doesn't exist in this context.";
+                return false;
+            }
+
+            vars[name] = v;
+            return true;
+        };
+
+        bool var_decl(std::string& name, ReturnObject& v, string& error_msg) {
+            if (var_contains(name)) {
+                error_msg = "Variable already defined.";
+                return false;
+            }
+
+            vars[name] = v;
+            return true;
+        };
+
+        bool var_define(std::string& name, string& error_msg) {
+            if (var_contains(name)) {
+                error_msg = "Variable already defined.";
+                return false;
+            }
+
+            ReturnObject default_init = NoneType();
+            var_set(name, default_init);
+            return true;
+        };
+};
+
 class Interpreter : IVisitor<ReturnObject> {
     private:
     bool _hadErrors;
+    unique_ptr<Environment> _env;
     std::vector<unique_ptr<RuntimeError>> errors;
 
     ReturnObject resolve_token(Token* t) {
@@ -255,7 +306,11 @@ class Interpreter : IVisitor<ReturnObject> {
     }
 
     ReturnObject visit_id(Identifier* t) {
-        return NoneType();
+        
+        string varname = t->token->get_lex();
+        ReturnObject val = _env.get()->var_get(varname);
+        
+        return val;
     }
 
     ReturnObject visit_call(FunctionCall* t) {
@@ -268,6 +323,27 @@ class Interpreter : IVisitor<ReturnObject> {
 
     ReturnObject visit_statement(Statement* t) {
         if (t->expression) return t->expression->inerpret(*this);
+        else if (t->varDecl) {
+            string err;
+            string name = t->varDecl->name->get_lex();
+            ReturnObject retVal = t->varDecl->initializer->inerpret(*this);
+            if (!_env.get()->var_decl(name, retVal, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
+        else if (t->varDefine) {
+            string err;
+            string name = t->varDefine->name->get_lex();
+            if (!_env.get()->var_define(name, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
         else {
             ReturnObject v = t->print->inerpret(*this);
             if (check_operand<double>(v)) {
@@ -281,6 +357,11 @@ class Interpreter : IVisitor<ReturnObject> {
                 if (_v) printf("Print True\n");
                 else printf("Print False\n");
             }
+            else if (check_operand<std::string>(v)) {
+                std::string _v;
+                getVariant<std::string>(v, _v);
+                printf("Print '%s'\n", _v.c_str());
+            }
             else if (check_operand<NoneType>(v)) {
                 printf("Print None\n");
             }
@@ -293,8 +374,10 @@ class Interpreter : IVisitor<ReturnObject> {
         }
     }
 
+    
+
     public:
-    Interpreter() : _hadErrors(false) {};
+    Interpreter() : _hadErrors(false), _env(make_unique<Environment>()) {};
 
     void dump_errors() {
         printf("Dump runtime errors:\n");

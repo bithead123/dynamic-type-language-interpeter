@@ -20,12 +20,15 @@ primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expressi
 
 V3
 
-program: statement* EOF ;
+program: declaration* EOF ;
+declaration: statement | varDecl ; 
+varDecl: "var" IDENTIFIER ("=" expression )? ;
 statement: exprStatement | printStatement ;
 exprStatement: expression ";" ;
 printStatement: "print" expression ";" ;
 
-expression: comma | conditional
+expression: comma | conditional | varAssign ;
+varAssign: IDENTIFIER "=" unary ;
 conditional: equality ( "?" expression ":" conditional )?
 comma: equality (( "," ) equality )*
 equality: comparison (( "!=" | "==" ) comparison)* ;
