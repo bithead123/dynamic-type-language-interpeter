@@ -107,6 +107,12 @@ class AstPrinter : IVisitor<string> {
             str.append("<Print> ");
             str.append(s->print->accept(*this));
         }
+        else if (s->varAssign) {
+            str.append("<VarAssign> "); // <VarDecl> a=
+            str.append(s->varAssign->name->get_lex());
+            str.append(" = ");
+            str.append(s->varAssign->val->accept(*this));
+        }
         
         str.append(")");
 

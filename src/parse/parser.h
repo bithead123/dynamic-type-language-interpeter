@@ -181,6 +181,30 @@ class Parser {
         return NULL;
     };
 
+    Statement* varAssign() {
+        if (match({TokenType::IDENTIFIER})) {
+            Token* id = current();
+            move_next();
+            if (match({TokenType::EQ})) {
+                move_next();
+                Expr* rhs = equality();
+                if (!verify(rhs, "Expect equality after ID in <VarAssign>.")) {
+                    return NULL;
+                }
+
+                if (match({TokenType::SEMICOLON})) {
+                    move_next();
+
+                    Statement* s = new Statement();
+                    s->varAssign = new VarAssign(id, rhs);
+                    return s;
+                }
+            }
+        }
+
+        return NULL;
+    };
+
     Statement* exprStatement() {
         auto ex = expression();
         if (!verify(ex, "Expect an expression.\n")) {
@@ -197,10 +221,101 @@ class Parser {
         return NULL;
     };
 
+    Statement* block() {
+        std::vector<Statement*> st;
+        if (match({TokenType::LEFT_FIG_BR})) {
+            move_next();
+
+            Statement* decl = declaration();
+            while(decl != NULL) {
+                st.push_back(decl);
+                decl = declaration();
+            }
+
+            if (!match({TokenType::RIGHT_FIG_BR})) {
+                Lang::Log(ERROR, "Expect '}' after open brace in <Block>.\n");
+                return NULL;
+            }
+
+            move_next();
+            Statement* state = new Statement();
+            state->block = new Block(st);
+            return state;
+        }
+
+        return NULL;
+    }
+
+    Statement* ifStatement() {
+        if (match({TokenType::IF, TokenType::LEFT_ROUND_BR})) {
+            move_next();
+            move_next();
+
+            Expr* cond = expression();
+            if (!verify(cond, "Expect expression after '(' to set condition in <If>.\n")) {
+                return NULL;
+            }
+
+            if (!match({TokenType::RIGHT_ROUND_BR})) {
+                Lang::Log(ERROR, "Expect expression after ')' to close condition in <If>.\n");
+                return NULL;
+            }
+
+            move_next();
+
+            if (!match({TokenType::LEFT_FIG_BR})) {
+                Lang::Log(ERROR, "Expect expression after '{' to open then state in <If>.\n");
+                return NULL;
+            }
+
+            move_next();
+
+            Statement* then = declaration();
+            if (!verify(then, "Expect then declaration in <If>\n")) {
+                return NULL;
+            }
+
+            if (!match({TokenType::RIGHT_FIG_BR})) {
+                Lang::Log(ERROR, "Expect expression after '}' to close then state in <If>.\n");
+                return NULL;
+            }
+
+            move_next();
+            Statement* s = new Statement();
+            s->_if = new IfBlock(cond, then, NULL);
+            
+            // parsing else
+            if (match({TokenType::ELSE, TokenType::LEFT_FIG_BR})) {
+                move_next();
+                move_next();
+                Statement* els = declaration();
+                if (!verify(els, "Expect decl in else block\n")) {
+                    return NULL;
+                }
+
+                if (!match({TokenType::RIGHT_FIG_BR})) {
+                    return NULL;
+                }
+
+                move_next();
+                s->_if->els = els;
+                return s;
+            }
+            else {
+                return s;
+            }
+        }
+
+        return NULL;
+    }
+
     Statement* statement() {
 
-        Statement* exp = exprStatement();
-        if (exp == NULL) exp = printStatement();
+        Statement* exp = varAssign();
+        if (!exp) exp = exprStatement();
+        if (!exp) exp = ifStatement();
+        if (!exp) exp = printStatement();
+        if (!exp) exp = block(); 
 
         if (!exp) {
             Lang::Log(ERROR, "Expect expression in statement\n");

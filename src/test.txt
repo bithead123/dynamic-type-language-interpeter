@@ -1,2 +1,6 @@
-var app = "good by click";
-print app;
+var a = 5;
+if (a == 4 ) {
+    print "then block";
+} else {
+    print "else";
+}

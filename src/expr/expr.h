@@ -28,6 +28,8 @@ class FunctionCall;
 class Conditional;
 class Statement;
 class VarDecl;
+class Block;
+class IfBlock;
 
 template<typename T>
 class IVisitor {
@@ -181,6 +183,27 @@ class VarDefine {
     VarDefine(Token* t) : name(t) {};
 };
 
+class VarAssign {
+    public:
+    Token* name;
+    Expr* val;
+    VarAssign(Token* t, Expr* init) : name(t), val(init) {};
+};
+
+class Block {
+    public:
+    std::vector<Statement*> statements;
+    Block(std::vector<Statement*>& s) : statements(s) {};
+};
+
+class IfBlock {
+    public: 
+    Expr* cond;
+    Statement* then;
+    Statement* els;
+    IfBlock(Expr* c, Statement* th, Statement* els) : els(els), cond(c), then(th) {}; 
+};
+
 
 class Statement : public Expr {
     public:
@@ -188,8 +211,11 @@ class Statement : public Expr {
         Expr* print;
         VarDecl* varDecl;
         VarDefine* varDefine;
-        
-        Statement() : expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL) {};
+        VarAssign* varAssign;
+        Block* block;
+        IfBlock* _if;
+
+        Statement() :_if(NULL), expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL), block(NULL) {};
 
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_statement(this);

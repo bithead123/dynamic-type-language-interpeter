@@ -68,7 +68,7 @@ class Environment {
 class Interpreter : IVisitor<ReturnObject> {
     private:
     bool _hadErrors;
-    unique_ptr<Environment> _env;
+    shared_ptr<Environment> _env;
     std::vector<unique_ptr<RuntimeError>> errors;
 
     ReturnObject resolve_token(Token* t) {
@@ -321,6 +321,35 @@ class Interpreter : IVisitor<ReturnObject> {
         return NoneType();
     }
 
+    void execute_block(Block* block, shared_ptr<Environment>&& env) {
+        auto prev = this->_env;
+        this->_env = env;
+        for (auto &state : block->statements) {
+            state->inerpret(*this);
+        }
+
+        this->_env = prev;
+    };
+    
+    ReturnObject execute_if(IfBlock* b) {
+        auto cond_v = b->cond->inerpret(*this);
+        if (!check_operand<bool>(cond_v)) {
+            return VoidType();
+        }
+
+        bool fact_v;
+        getVariant(cond_v, fact_v);
+        if (fact_v) {
+            auto ret_val = b->then->inerpret(*this);
+            return ret_val;
+        }
+        else if (b->els) {
+            return b->els->inerpret(*this);
+        }
+
+        return VoidType();
+    }
+
     ReturnObject visit_statement(Statement* t) {
         if (t->expression) return t->expression->inerpret(*this);
         else if (t->varDecl) {
@@ -344,7 +373,26 @@ class Interpreter : IVisitor<ReturnObject> {
 
             return VoidType();
         }
-        else {
+        else if (t->varAssign) {
+            string err;
+            string name = t->varAssign->name->get_lex();
+            ReturnObject retVal = t->varAssign->val->inerpret(*this);
+            if (!_env.get()->var_assign(name, retVal, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
+        else if (t->block) {
+            execute_block(t->block, make_shared<Environment>());
+            return VoidType();
+        }
+        else if (t->_if) {
+            return execute_if(t->_if);
+        }
+        else if (t->print) {
+            printf("s.print\n");
             ReturnObject v = t->print->inerpret(*this);
             if (check_operand<double>(v)) {
                 double _v;
@@ -371,6 +419,9 @@ class Interpreter : IVisitor<ReturnObject> {
             }
 
             return VoidType();
+        }
+        else {
+            runtime_erorr("Undefined statement to execute\n");
         }
     }
 

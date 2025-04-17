@@ -20,13 +20,19 @@ primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expressi
 
 V3
 
+if (expr) {
+    
+}
+
 program: declaration* EOF ;
 declaration: statement | varDecl ; 
 varDecl: "var" IDENTIFIER ("=" expression )? ;
-statement: exprStatement | printStatement ;
+statement: exprStatement | ifStatement | printStatement | block;
+block: "{" declaration "}" ;
 exprStatement: expression ";" ;
 printStatement: "print" expression ";" ;
 
+ifStatement: "if" "(" expression ")" statement ;
 expression: comma | conditional | varAssign ;
 varAssign: IDENTIFIER "=" unary ;
 conditional: equality ( "?" expression ":" conditional )?
