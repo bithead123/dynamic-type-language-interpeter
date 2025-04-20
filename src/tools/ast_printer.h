@@ -54,6 +54,16 @@ class AstPrinter : IVisitor<string> {
         return parenthesize("group", {g->expr});
     };
 
+    string visit_logical(Logical* l) {
+        string s("(<Logical> ");
+        s.append(l->lhs->accept(*this));
+        s.append(" ");
+        s.append(l->oper->get_lex());
+        s.append(" ");
+        s.append(l->rhs->accept(*this));
+        return s;
+    }
+
     string visit_id(Identifier* g) {
         string s(g->token->get_lex());
         return g->token->get_lex();

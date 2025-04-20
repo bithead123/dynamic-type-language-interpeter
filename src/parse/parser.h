@@ -181,6 +181,30 @@ class Parser {
         return NULL;
     };
 
+    Expr* logicOr() {
+        Expr* logic = logicAnd();
+        while(match({TokenType::OR})) {
+            Token* oper = current();
+            move_next();
+            Expr* rhs = logicAnd();
+            logic = new Logical(logic, rhs, oper);
+        }
+
+        return logic;
+    }
+
+    Expr* logicAnd() {
+        Expr* logic = equality();
+        while(match({TokenType::AND})) {
+            Token* oper = current();
+            move_next();
+            Expr* rhs = equality();
+            logic = new Logical(logic, rhs, oper);
+        }
+
+        return logic;
+    }
+
     Statement* varAssign() {
         if (match({TokenType::IDENTIFIER})) {
             Token* id = current();
@@ -328,6 +352,7 @@ class Parser {
     Expr* expression() {
         auto e = conditional();
         if (!e) e = comma();
+        if (!e) e = logicOr();
         return e;
     };
 

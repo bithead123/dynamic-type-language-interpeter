@@ -30,6 +30,7 @@ class Statement;
 class VarDecl;
 class Block;
 class IfBlock;
+class Logical;
 
 template<typename T>
 class IVisitor {
@@ -42,6 +43,7 @@ class IVisitor {
     virtual T visit_call(FunctionCall* lit) = 0;
     virtual T visit_conditional(Conditional* lit) = 0;
     virtual T visit_statement(Statement* statement) = 0;
+    virtual T visit_logical(Logical* log) = 0;
     //virtual T visit_varDecl(VarDecl* t) = 0;
 };
 
@@ -170,6 +172,22 @@ class Conditional : public Expr {
         };
 };
 
+class Logical : public Expr {
+    public:
+    Expr* lhs;
+    Expr* rhs;
+    Token* oper;
+    Logical(Expr *l , Expr* r, Token* op) : lhs(l), rhs(r), oper(op) {};
+
+    std::string accept(IVisitor<std::string>& v) {
+        return v.visit_logical(this);
+    };
+
+    ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+        return v.visit_logical(this);
+    };
+};
+
 class VarDecl {
     public:
     Token* name;
@@ -204,7 +222,6 @@ class IfBlock {
     IfBlock(Expr* c, Statement* th, Statement* els) : els(els), cond(c), then(th) {}; 
 };
 
-
 class Statement : public Expr {
     public:
         Expr* expression;
@@ -215,7 +232,7 @@ class Statement : public Expr {
         Block* block;
         IfBlock* _if;
 
-        Statement() :_if(NULL), expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL), block(NULL) {};
+        Statement() :  _if(NULL), expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL), block(NULL) {};
 
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_statement(this);

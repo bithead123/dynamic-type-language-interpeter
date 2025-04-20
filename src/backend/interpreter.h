@@ -317,6 +317,29 @@ class Interpreter : IVisitor<ReturnObject> {
         return NoneType();
     }
 
+    bool is_true_logic(ReturnObject& t) {
+        if (check_operand<bool>(t)) {
+            bool _v;
+            getVariant(t, _v);
+            return _v;
+        }
+
+        return false;
+    }
+
+    ReturnObject visit_logical(Logical* l) {
+        auto lv = l->lhs->inerpret(*this);
+        if (l->oper->get_type() == OR) {
+            return lv;
+        }
+        else if (l->oper->get_type() == TokenType::AND) {
+            auto rv = l->rhs->inerpret(*this);
+            if (is_true_logic(rv)) return rv;
+        }
+
+        return false;
+    };
+
     ReturnObject visit_conditional(Conditional* t) {
         return NoneType();
     }

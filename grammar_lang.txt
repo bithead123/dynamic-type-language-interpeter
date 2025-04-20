@@ -21,7 +21,7 @@ primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expressi
 V3
 
 if (expr) {
-    
+
 }
 
 program: declaration* EOF ;
@@ -33,8 +33,10 @@ exprStatement: expression ";" ;
 printStatement: "print" expression ";" ;
 
 ifStatement: "if" "(" expression ")" statement ;
-expression: comma | conditional | varAssign ;
+expression: comma | conditional | varAssign  | logicOr ;
 varAssign: IDENTIFIER "=" unary ;
+logicOr: logicAnd ("or" logicAnd )* ;
+logicAnd: equality ( "and" equality )* ;
 conditional: equality ( "?" expression ":" conditional )?
 comma: equality (( "," ) equality )*
 equality: comparison (( "!=" | "==" ) comparison)* ;
