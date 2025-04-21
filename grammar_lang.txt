@@ -20,17 +20,27 @@ primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expressi
 
 V3
 
-program: statement* EOF ;
-statement: exprStatement | printStatement ;
+program: declaration* EOF ;
+declaration: statement | varDecl ; 
+varDecl: "var" IDENTIFIER ("=" expression )? ;
+statement: exprStatement | ifStatement | printStatement | block;
+block: "{" declaration "}" ;
 exprStatement: expression ";" ;
 printStatement: "print" expression ";" ;
 
-expression: comma | conditional
+ifStatement: "if" "(" expression ")" statement ;
+whileStatement: "while" "(" expression ")" declaration ;
+expression: comma | conditional | varAssign  | logicOr ;
+varAssign: IDENTIFIER "=" unary ;
+logicOr: logicAnd ("or" logicAnd )* ;
+logicAnd: equality ( "and" equality )* ;
 conditional: equality ( "?" expression ":" conditional )?
 comma: equality (( "," ) equality )*
 equality: comparison (( "!=" | "==" ) comparison)* ;
 comparison: term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term: factor ( "+" | "-" factor )* ;
 factor: unary ( "/" | "*" unary )* ;
-unary: ( "!" | "-") unary | primary;
-primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "(" expression ")" ;   
+unary: ( "!" | "-") unary | call;
+call: primary ( "(" args? ")" )* ;
+args: expression ( "," expression )* ;
+primary: NUMBER | STRING | "true" | "false" | "None" | IDENTIFIER | "break" | "(" expression ")" ;   

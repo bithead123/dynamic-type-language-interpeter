@@ -54,6 +54,16 @@ class AstPrinter : IVisitor<string> {
         return parenthesize("group", {g->expr});
     };
 
+    string visit_logical(Logical* l) {
+        string s("(<Logical> ");
+        s.append(l->lhs->accept(*this));
+        s.append(" ");
+        s.append(l->oper->get_lex());
+        s.append(" ");
+        s.append(l->rhs->accept(*this));
+        return s;
+    }
+
     string visit_id(Identifier* g) {
         string s(g->token->get_lex());
         return g->token->get_lex();
@@ -71,8 +81,8 @@ class AstPrinter : IVisitor<string> {
         return s;
     };
 
-    string visit_call(FunctionCall* g) {
-        string s(g->token->get_lex());
+    string visit_func(Function* g) {
+        string s(g->callee->accept(*this));
         if (g->args.size() == 0) {
             s.append("()");
         }
@@ -93,9 +103,25 @@ class AstPrinter : IVisitor<string> {
     string visit_statement(Statement* s) {
         string str("(stmt ");
         if (s->expression) str.append(s->expression->accept(*this));
-        else {
-            str.append("Print ");
+        else if (s->varDecl) {
+            str.append("<VarDecl> "); // <VarDecl> a=
+            str.append(s->varDecl->name->get_lex());
+            str.append(" = ");
+            str.append(s->varDecl->initializer->accept(*this));
+        }
+        else if (s->varDefine) {
+            str.append("<VarDefine> ");
+            str.append(s->varDefine->name->get_lex());
+        }
+        else if (s->print) {
+            str.append("<Print> ");
             str.append(s->print->accept(*this));
+        }
+        else if (s->varAssign) {
+            str.append("<VarAssign> "); // <VarDecl> a=
+            str.append(s->varAssign->name->get_lex());
+            str.append(" = ");
+            str.append(s->varAssign->val->accept(*this));
         }
         
         str.append(")");

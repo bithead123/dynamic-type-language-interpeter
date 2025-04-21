@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
 
     Interpreter pt;
     pt.interpete(ex);
+    pt.dump_errors();
 
     //AstPrinter pr;
 

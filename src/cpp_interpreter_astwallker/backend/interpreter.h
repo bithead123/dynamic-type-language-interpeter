@@ -15,9 +15,63 @@ class RuntimeError {
     RuntimeError(string&& msg, int line): msg(msg), line(line) {};
 };
 
+class Environment {
+    std::map<std::string, ReturnObject> vars;
+    
+    void var_set(string& name, ReturnObject& value) {
+        vars[name] = value;
+
+        string sv = obj::to_str(value);
+        printf("Env: [%s]=%s\n", name.c_str(), sv.c_str());
+    };
+
+    public:
+
+        ReturnObject var_get(std::string& name) {
+            return vars[name];
+        };
+
+        bool var_contains(std::string& name) {
+            if (vars.find(name) != end(vars)) return true;
+            else return false;
+        };
+
+        bool var_assign(std::string& name, ReturnObject& v, string& error_msg) {
+            if (!var_contains(name)) {
+                error_msg = "Variable doesn't exist in this context.";
+                return false;
+            }
+
+            vars[name] = v;
+            return true;
+        };
+
+        bool var_decl(std::string& name, ReturnObject& v, string& error_msg) {
+            if (var_contains(name)) {
+                error_msg = "Variable already defined.";
+                return false;
+            }
+
+            vars[name] = v;
+            return true;
+        };
+
+        bool var_define(std::string& name, string& error_msg) {
+            if (var_contains(name)) {
+                error_msg = "Variable already defined.";
+                return false;
+            }
+
+            ReturnObject default_init = NoneType();
+            var_set(name, default_init);
+            return true;
+        };
+};
+
 class Interpreter : IVisitor<ReturnObject> {
     private:
     bool _hadErrors;
+    shared_ptr<Environment> _env;
     std::vector<unique_ptr<RuntimeError>> errors;
 
     ReturnObject resolve_token(Token* t) {
@@ -37,6 +91,9 @@ class Interpreter : IVisitor<ReturnObject> {
     
         case BOOL_TRUE:
             return true;
+
+        case BREAK:
+            return BreakLoop();
     
         default:
             return NoneType();
@@ -255,20 +312,136 @@ class Interpreter : IVisitor<ReturnObject> {
     }
 
     ReturnObject visit_id(Identifier* t) {
-        return NoneType();
+        
+        string varname = t->token->get_lex();
+        ReturnObject val = _env.get()->var_get(varname);
+        
+        return val;
     }
 
     ReturnObject visit_call(FunctionCall* t) {
         return NoneType();
     }
 
+    bool is_true_logic(ReturnObject& t) {
+        if (check_operand<bool>(t)) {
+            bool _v;
+            getVariant(t, _v);
+            return _v;
+        }
+
+        return false;
+    }
+
+    ReturnObject visit_logical(Logical* l) {
+        auto lv = l->lhs->inerpret(*this);
+        if (l->oper->get_type() == OR) {
+            return lv;
+        }
+        else if (l->oper->get_type() == TokenType::AND) {
+            auto rv = l->rhs->inerpret(*this);
+            if (is_true_logic(rv)) return rv;
+        }
+
+        return false;
+    };
+
     ReturnObject visit_conditional(Conditional* t) {
         return NoneType();
     }
 
+    void execute_block(Block* block, shared_ptr<Environment>&& env) {
+        auto prev = this->_env;
+        this->_env = env;
+        for (auto &state : block->statements) {
+            state->inerpret(*this);
+        }
+
+        this->_env = prev;
+    };
+    
+    ReturnObject execute_if(IfBlock* b) {
+        auto cond_v = b->cond->inerpret(*this);
+        if (!check_operand<bool>(cond_v)) {
+            return VoidType();
+        }
+
+        bool fact_v;
+        getVariant(cond_v, fact_v);
+        if (fact_v) {
+            auto ret_val = b->then->inerpret(*this);
+            return ret_val;
+        }
+        else if (b->els) {
+            return b->els->inerpret(*this);
+        }
+
+        return VoidType();
+    }
+
+    ReturnObject execute_while(WhileStatement* w) {
+        
+        ReturnObject cond = w->cond->inerpret(*this);
+        while(is_true_logic(cond)) {
+            ReturnObject tv = w->then->inerpret(*this);
+            if (check_operand<BreakLoop>(tv)) {
+                break;
+            }
+        }
+
+        return VoidType();
+    };
+
+    ReturnObject visit_func(Function* f) {
+        return VoidType();
+    }
+
     ReturnObject visit_statement(Statement* t) {
         if (t->expression) return t->expression->inerpret(*this);
-        else {
+        else if (t->varDecl) {
+            string err;
+            string name = t->varDecl->name->get_lex();
+            ReturnObject retVal = t->varDecl->initializer->inerpret(*this);
+            if (!_env.get()->var_decl(name, retVal, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
+        else if (t->varDefine) {
+            string err;
+            string name = t->varDefine->name->get_lex();
+            if (!_env.get()->var_define(name, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
+        else if (t->varAssign) {
+            string err;
+            string name = t->varAssign->name->get_lex();
+            ReturnObject retVal = t->varAssign->val->inerpret(*this);
+            if (!_env.get()->var_assign(name, retVal, err)) {
+                runtime_erorr(err.c_str());
+                return NoneType();
+            }
+
+            return VoidType();
+        }
+        else if (t->block) {
+            execute_block(t->block, make_shared<Environment>());
+            return VoidType();
+        }
+        else if (t->_while) {
+            return execute_while(t->_while);
+        }
+        else if (t->_if) {
+            return execute_if(t->_if);
+        }
+        else if (t->print) {
+            printf("s.print\n");
             ReturnObject v = t->print->inerpret(*this);
             if (check_operand<double>(v)) {
                 double _v;
@@ -281,8 +454,16 @@ class Interpreter : IVisitor<ReturnObject> {
                 if (_v) printf("Print True\n");
                 else printf("Print False\n");
             }
+            else if (check_operand<std::string>(v)) {
+                std::string _v;
+                getVariant<std::string>(v, _v);
+                printf("Print '%s'\n", _v.c_str());
+            }
             else if (check_operand<NoneType>(v)) {
                 printf("Print None\n");
+            }
+            else if (check_operand<BreakLoop>(v)) {
+                printf("Print BreakLoop\n");
             }
             else {
                 Lang::Log(ERROR, "Can't resolve type in print statement\n"); 
@@ -291,10 +472,15 @@ class Interpreter : IVisitor<ReturnObject> {
 
             return VoidType();
         }
+        else {
+            runtime_erorr("Undefined statement to execute\n");
+        }
     }
 
+    
+
     public:
-    Interpreter() : _hadErrors(false) {};
+    Interpreter() : _hadErrors(false), _env(make_unique<Environment>()) {};
 
     void dump_errors() {
         printf("Dump runtime errors:\n");
