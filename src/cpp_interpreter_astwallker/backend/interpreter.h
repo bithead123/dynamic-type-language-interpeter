@@ -20,6 +20,9 @@ class Environment {
     
     void var_set(string& name, ReturnObject& value) {
         vars[name] = value;
+
+        string sv = obj::to_str(value);
+        printf("Env: [%s]=%s\n", name.c_str(), sv.c_str());
     };
 
     public:
@@ -88,6 +91,9 @@ class Interpreter : IVisitor<ReturnObject> {
     
         case BOOL_TRUE:
             return true;
+
+        case BREAK:
+            return BreakLoop();
     
         default:
             return NoneType();
@@ -373,6 +379,23 @@ class Interpreter : IVisitor<ReturnObject> {
         return VoidType();
     }
 
+    ReturnObject execute_while(WhileStatement* w) {
+        
+        ReturnObject cond = w->cond->inerpret(*this);
+        while(is_true_logic(cond)) {
+            ReturnObject tv = w->then->inerpret(*this);
+            if (check_operand<BreakLoop>(tv)) {
+                break;
+            }
+        }
+
+        return VoidType();
+    };
+
+    ReturnObject visit_func(Function* f) {
+        return VoidType();
+    }
+
     ReturnObject visit_statement(Statement* t) {
         if (t->expression) return t->expression->inerpret(*this);
         else if (t->varDecl) {
@@ -411,6 +434,9 @@ class Interpreter : IVisitor<ReturnObject> {
             execute_block(t->block, make_shared<Environment>());
             return VoidType();
         }
+        else if (t->_while) {
+            return execute_while(t->_while);
+        }
         else if (t->_if) {
             return execute_if(t->_if);
         }
@@ -435,6 +461,9 @@ class Interpreter : IVisitor<ReturnObject> {
             }
             else if (check_operand<NoneType>(v)) {
                 printf("Print None\n");
+            }
+            else if (check_operand<BreakLoop>(v)) {
+                printf("Print BreakLoop\n");
             }
             else {
                 Lang::Log(ERROR, "Can't resolve type in print statement\n"); 

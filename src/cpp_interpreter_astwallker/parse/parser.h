@@ -270,6 +270,34 @@ class Parser {
         return NULL;
     }
 
+    Statement* whileStatement() {
+        if (match({TokenType::WHILE, TokenType::LEFT_ROUND_BR})) {
+            move_next();
+            move_next();
+            Expr* cond = expression();
+            if (!verify(cond, "Expect expression after '(' to set condition in <While>.\n")) {
+                return NULL;
+            }
+
+            if (match({TokenType::RIGHT_ROUND_BR, TokenType::LEFT_FIG_BR})) {
+                move_next();
+                move_next();
+                Statement* st = declaration();
+                if (!verify(st, "Expect expression after '{' to set statement in <While>.\n")) {
+                    return NULL;
+                }
+
+                if (match({TokenType::RIGHT_FIG_BR})) {
+                    Statement* w = new Statement();
+                    w->_while = new WhileStatement(cond, st);
+                    return w;
+                }
+            }
+        }
+
+        return NULL;
+    };
+
     Statement* ifStatement() {
         if (match({TokenType::IF, TokenType::LEFT_ROUND_BR})) {
             move_next();
@@ -338,6 +366,7 @@ class Parser {
         Statement* exp = varAssign();
         if (!exp) exp = exprStatement();
         if (!exp) exp = ifStatement();
+        if (!exp) exp = whileStatement();
         if (!exp) exp = printStatement();
         if (!exp) exp = block(); 
 
@@ -464,6 +493,48 @@ class Parser {
         return left;
     };
 
+
+    vector<Expr*> args() {
+        vector<Expr*> v;
+        Expr* e = expression();
+        if (!e) return v;
+
+        v.push_back(e);
+
+        while (match({TokenType::COMMA})) {
+            move_next();
+            Expr* cur = expression();
+            v.push_back(cur);
+        }
+
+        return v;
+    };
+
+    Expr* finishCall(Expr* callee) {
+        vector<Expr*> a = args();
+        if (match({TokenType::RIGHT_ROUND_BR})) {
+            Token* cur = current();
+            move_next();
+            return new Function(callee, cur, a);
+        }
+
+        Lang::Log(ERROR, "Expect close arguments ')' in func.\n");
+        return NULL;
+    }
+
+    Expr* call() {
+        Expr* p = primary();
+        if (!p) return NULL;
+
+        while(match({TokenType::LEFT_ROUND_BR})) {
+            move_next();
+            p = finishCall(p);
+            printf("FINISH CALL\n");
+        }
+
+        return p;
+    }
+
     Expr* unary() {
         if (match({TokenType::EXCL, TokenType::MINUS})) {
             Token* op = current();
@@ -476,7 +547,7 @@ class Parser {
             return new Unary(right, op);
         }
 
-        return primary();
+        return call();
     };
 
     Expr* primary() {
@@ -488,54 +559,20 @@ class Parser {
         else if (match({TokenType::NONE})) ex = new Literal(curr);
         else if (match({TokenType::LITERAL_STRING, TokenType::LITERAL_INT})) ex = new Literal(curr);
         else if (match({TokenType::IDENTIFIER})) {
-            // parse fn call
-            move_next();
-            if (match({TokenType::LEFT_ROUND_BR})) {
-                move_next();
-                
-                if (match({TokenType::RIGHT_ROUND_BR})) {
-                    ex = new FunctionCall(curr);
-                }
-                else {
-                    // parse args
-                    FunctionCall* call = new FunctionCall(curr);
-                    while(true) {
-                        Expr* arg = equality();
-                        if (arg != NULL) 
-                            call->add_arg(arg);
-    
-                        if (match({TokenType::COMMA}) == true) move_next();
-                        else break;
-                    }
-    
-                    //move_next();
-                    if (!match({TokenType::RIGHT_ROUND_BR})) {
-                        auto cur2 = current();
-                        printf("Expect close ')' after fn call, but current is '%s'\n", cur2->get_lex().c_str());
-                    }
-    
-                    ex = call;
-                }
-            }
-            else {
-                move_back();
-                ex = new Identifier(curr);
-            }
+            printf("ID\n");
+            ex = new Identifier(curr);
         }
         // open tag
-        else if (match({TokenType::LEFT_ROUND_BR})) {
-            printf("LEFT BR\n");
-            auto expr = expression();
-            if (!match({TokenType::RIGHT_ROUND_BR})) {
-                // error
-            }
-
-            ex = new Grouping(expr);
-        }
 
         if (ex == NULL) {
             // error
-            verify(ex, "Expected expression in <Primary>\n");
+            if (curr != NULL) {
+                printf("Expected expression in <Primary> with got '%s'\n", curr->get_name());
+            }
+            else {
+                printf("Expected expression in <Primary> with got 'NULL'\n");
+            }
+            
             return NULL;
         }
 

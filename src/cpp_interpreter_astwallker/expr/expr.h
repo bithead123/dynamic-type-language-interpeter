@@ -8,7 +8,8 @@
 
 struct VoidType{};
 struct NoneType{};
-typedef boost::variant<NoneType, bool, double,  std::string, VoidType> ReturnObject;
+struct BreakLoop{};
+typedef boost::variant<NoneType, bool, double,  std::string, VoidType, BreakLoop> ReturnObject;
 
 template<typename CheckType>
 bool getVariant(const ReturnObject& v, CheckType& out) {
@@ -31,6 +32,7 @@ class VarDecl;
 class Block;
 class IfBlock;
 class Logical;
+class Function;
 
 template<typename T>
 class IVisitor {
@@ -40,10 +42,11 @@ class IVisitor {
     virtual T visit_unary(Unary* unary) = 0;
     virtual T visit_literal(Literal* lit) = 0;
     virtual T visit_id(Identifier* lit) = 0;
-    virtual T visit_call(FunctionCall* lit) = 0;
+    //virtual T visit_call(FunctionCall* lit) = 0;
     virtual T visit_conditional(Conditional* lit) = 0;
     virtual T visit_statement(Statement* statement) = 0;
     virtual T visit_logical(Logical* log) = 0;
+    virtual T visit_func(Function* f) = 0;
     //virtual T visit_varDecl(VarDecl* t) = 0;
 };
 
@@ -132,28 +135,6 @@ class Identifier : public Expr {
         };
 };
 
-class FunctionCall : public Expr {
-    public:
-        Token* token;
-        std::vector<Expr*> args;
-
-        FunctionCall(Token* tk) {
-            this->token = tk;
-        };
-
-        void add_arg(Expr* t) {
-            args.push_back(t);
-        };
-
-        std::string accept(IVisitor<std::string>& v) {
-            return v.visit_call(this);
-        };
-
-        ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
-            return v.visit_call(this);
-        };
-};
-
 class Conditional : public Expr {
     public:
         Expr* cond;
@@ -222,6 +203,29 @@ class IfBlock {
     IfBlock(Expr* c, Statement* th, Statement* els) : els(els), cond(c), then(th) {}; 
 };
 
+class WhileStatement {
+    public: 
+    Expr* cond;
+    Statement* then;
+    WhileStatement(Expr* c, Statement* th) :  cond(c), then(th) {}; 
+};
+
+class Function  : public Expr {
+    public:
+    Expr* callee;
+    Token* paren;
+    std::vector<Expr*> args;
+    Function(Expr* _callee, Token* _paren, std::vector<Expr*>& _args) : callee(_callee), paren(_paren), args(_args) {};
+
+    std::string accept(IVisitor<std::string>& v) {
+        return v.visit_func(this);
+    };
+
+    ReturnObject inerpret(IVisitor<ReturnObject>& v)  {
+        return v.visit_func(this);
+    };
+};
+
 class Statement : public Expr {
     public:
         Expr* expression;
@@ -231,8 +235,9 @@ class Statement : public Expr {
         VarAssign* varAssign;
         Block* block;
         IfBlock* _if;
+        WhileStatement* _while;
 
-        Statement() :  _if(NULL), expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL), block(NULL) {};
+        Statement() : _while(NULL), _if(NULL), expression(NULL), print(NULL), varDecl(NULL), varDefine(NULL), block(NULL) {};
 
         std::string accept(IVisitor<std::string>& v) {
             return v.visit_statement(this);

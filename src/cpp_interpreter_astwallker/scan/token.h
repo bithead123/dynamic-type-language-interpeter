@@ -50,6 +50,7 @@ enum TokenType {
     THIS,
     VAR,
     WHILE,
+    BREAK,
     // utils
     EOF_
 };
@@ -96,6 +97,7 @@ static std::map<TokenType, const char*> token_names {
     {VAR, "var"},
     {WHILE, "while"},
     {QUESTION, "question"},
+    {BREAK, "break"},
     // utils
     {EOF_, "eof"}
 };

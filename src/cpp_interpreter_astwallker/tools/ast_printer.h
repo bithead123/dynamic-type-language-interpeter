@@ -81,8 +81,8 @@ class AstPrinter : IVisitor<string> {
         return s;
     };
 
-    string visit_call(FunctionCall* g) {
-        string s(g->token->get_lex());
+    string visit_func(Function* g) {
+        string s(g->callee->accept(*this));
         if (g->args.size() == 0) {
             s.append("()");
         }
