@@ -5,6 +5,9 @@ int get_code_offset(uint8_t t) {
     {
     case OP_RET:
         return 1;
+
+    case OP_NEGATE:
+        return 1;
     
     case OP_CONST:
         return 2;
@@ -33,6 +36,10 @@ int disasm_chunk_code(Chunk* t, int offset) {
 
     case OP_CONST:
         disasm_constant_instr("OP_CONST", t, offset);
+        break;
+
+    case OP_NEGATE:
+        disasm_constant_instr("OP_NEGATE", t, offset);
         break;
     
     default:

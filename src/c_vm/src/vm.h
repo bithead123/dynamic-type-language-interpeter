@@ -10,13 +10,21 @@ typedef enum {
     INTERPRET_RUNTIME_ERROR
 } INTERPRET_RESULT;
 
+#define VM_STACK_MAX 256
+
 typedef struct {
     Chunk* chunk;
     uint8_t* instr_ptr;
+    // --- stack ----
+    Value stack[VM_STACK_MAX];
+    Value* stack_top;
 } VM;
 
-extern void vm_init();
-extern void vm_destroy();
-extern INTERPRET_RESULT vm_interpret(Chunk* t);
+void vm_init();
+void vm_destroy();
+INTERPRET_RESULT vm_interpret(Chunk* t);
+
+void vm_stack_push(Value v);
+Value vm_stack_pop();
 
 #endif
