@@ -19,9 +19,8 @@ void valueArray_write(ValueArray* t, Value value) {
         t->values = new_ptr;
         t->capacity = new_cap;
     }
-    else {
-        t->values[t->count++] = value;
-    }
+    
+    t->values[t->count++] = value;
 };
 
 void valueArray_destroy(ValueArray* t) {

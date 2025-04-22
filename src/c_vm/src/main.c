@@ -8,7 +8,7 @@ int main() {
     vm_init();
 
     Chunk t;
-    chunk_init(&t, 6);
+    chunk_init(&t, 5);
 
     int ct = chunk_add_constant(&t, 25.23);
     chunk_write(&t, OP_CONST, 1);
@@ -18,7 +18,15 @@ int main() {
     chunk_write(&t, OP_CONST, 1);
     chunk_write(&t, ct2, 1);
 
-    chunk_write(&t, OP_DIV, 1);
+    //chunk_write(&t, OP_ADD, 1);
+
+    int ct3 = chunk_add_constant(&t, 52);
+    chunk_write(&t, OP_CONST, 1);
+    chunk_write(&t, ct3, 1);
+
+    chunk_write(&t, OP_ADD, 1);
+
+    chunk_write(&t, OP_ADD, 1);
 
     chunk_write(&t, OP_RET, 123);
 

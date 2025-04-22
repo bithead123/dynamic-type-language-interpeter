@@ -7,7 +7,7 @@ Chunk* chunk_alloc() {
 void chunk_init(Chunk* t, int code_length) {
     t->code = (uint8_t*)MEM_MALLOC(sizeof(uint8_t) * code_length);
     t->lines = (int*)MEM_MALLOC(sizeof(int) * code_length);
-    valueArray_init(&t->constants, VALUES_ARRAY_INIT_CAP);
+    valueArray_init(&t->constants, code_length);
     t->capacity = code_length;
     t->count = 0;
 };
@@ -21,11 +21,10 @@ void chunk_write(Chunk* t, uint8_t byte, int line) {
         t->code = MEM_GROW(uint8_t, t->code, old_cap, new_cap);
         t->lines = MEM_GROW(int, t->lines, old_cap, new_cap);
     }
-    else {
-        t->lines[t->count] = line;
-        t->code[t->count] = byte;
-        t->count++;
-    }
+    
+    t->lines[t->count] = line;
+    t->code[t->count] = byte;
+    t->count++;
 };
 
 int chunk_add_constant(Chunk *t, Value constant) {
