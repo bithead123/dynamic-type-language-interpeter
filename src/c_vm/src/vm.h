@@ -22,7 +22,7 @@ typedef struct {
 
 void vm_init();
 void vm_destroy();
-INTERPRET_RESULT vm_interpret(Chunk* t);
+INTERPRET_RESULT vm_interpret_source(const char* source);
 
 void vm_stack_push(Value v);
 Value vm_stack_pop();

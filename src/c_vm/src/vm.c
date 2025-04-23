@@ -1,4 +1,5 @@
 #include "vm.h"
+#include "compiler/compiler.h"
 
 VM vm;
 
@@ -44,7 +45,7 @@ INTERPRET_RESULT run() {
         case OP_CONST:
             Value constant = READ_CONSTANT();
             vm_stack_push(constant);
-            break;
+            break; 
 
         default:
             break;
@@ -54,6 +55,11 @@ INTERPRET_RESULT run() {
     #undef READ_BYTE
     #undef READ_CONSTANT
 }
+
+INTERPRET_RESULT vm_interpret_source(const char* source) {
+    compile(source);
+    return INTERPRET_OK;
+};
 
 INTERPRET_RESULT vm_interpret(Chunk* t) {
     vm.chunk = t;
