@@ -57,8 +57,22 @@ INTERPRET_RESULT run() {
 }
 
 INTERPRET_RESULT vm_interpret_source(const char* source) {
-    compile(source);
-    return INTERPRET_OK;
+    
+    Chunk chunk;
+    chunk_init(&chunk, 4);
+
+    if (!compile(source, &chunk)) {
+        chunk_destroy(&chunk);
+        return INTERPRET_COMPILE_ERROR;
+    }
+
+    vm.chunk = &chunk;
+    vm.instr_ptr = vm.chunk->code;
+
+    INTERPRET_RESULT result = run();
+
+    chunk_destroy(&chunk);
+    return result;
 };
 
 INTERPRET_RESULT vm_interpret(Chunk* t) {

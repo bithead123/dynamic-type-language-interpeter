@@ -37,7 +37,7 @@ Token make_error_token(const char* msg) {
     t.length = (int)strlen(msg);
     t.line = scanner.line;
     return t;
-}
+};
 
 char next_char() {
     scanner.current++;
