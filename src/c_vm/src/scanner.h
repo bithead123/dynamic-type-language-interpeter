@@ -2,7 +2,7 @@
 #define COMPILER_SCANNER_H
 
 #include "string.h"
-#include "../common.h"
+#include "common.h"
 
 typedef enum {
     // single char

@@ -21,6 +21,15 @@ Token make_token(TOKEN_TYPE type) {
     return t;
 };
 
+Token make_eof_token() {
+    Token t;
+    t.type = TOKEN_EOF;
+    t.start = "EOF";
+    t.length = 0;
+    t.line = scanner.line;
+    return t;
+};
+
 Token make_error_token(const char* msg) {
     Token t;
     t.type = TOKEN_ERROR;
@@ -60,6 +69,11 @@ void skip_whitespaces() {
         case ' ':
         case '\r':
         case '\t':
+            next_char();
+            break;
+
+        case '\n':
+            scanner.line++;
             next_char();
             break;
         
@@ -167,7 +181,7 @@ Token identifier() {
 
 Token scan_token() {
     skip_whitespaces();
-    if (is_at_end()) return make_token(TOKEN_EOF);
+    if (is_at_end()) return make_eof_token();
 
     scanner.start = scanner.current;
 
@@ -203,21 +217,10 @@ Token scan_token() {
     // literals
     case '"': return string();
 
-    case '\n':
-        scanner.line++;
-        next_char();
-        break;
-    
-
     default:
-        break;
+        printf("CHAR='%c'\n", c);
+        return make_error_token("Unexpected character.");
     }
-
-
-
-
-
-    return make_error_token("Unexpected character.");
 }
 
 void scanner_init(const char* source) {

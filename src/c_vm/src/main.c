@@ -18,14 +18,6 @@ void repl() {
     }
 };
 
-void runFile(const char* path) {
-    char* source =  readFile(path);
-    INTERPRET_RESULT result = vm_interpret_source(source);
-    free(source);
-
-    if (result == INTERPRET_RUNTIME_ERROR) exit(70);
-    if (result == INTERPRET_COMPILE_ERROR) exit(65);
-};
 
 char* readFile(const char* path) {
     FILE* f = fopen(path, "rb");
@@ -55,6 +47,16 @@ char* readFile(const char* path) {
     fclose(f);
     return buffer;
 };
+
+void runFile(const char* path) {
+    char* source =  readFile(path);
+    INTERPRET_RESULT result = vm_interpret_source(source);
+    free(source);
+
+    if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+    if (result == INTERPRET_COMPILE_ERROR) exit(65);
+};
+
 
 int main(int argc, const char* argv[]) {
     

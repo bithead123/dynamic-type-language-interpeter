@@ -1,5 +1,5 @@
 #include "vm.h"
-#include "compiler/compiler.h"
+#include "compiler.h"
 
 VM vm;
 

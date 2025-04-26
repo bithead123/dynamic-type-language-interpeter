@@ -1,5 +1,4 @@
 #include "compiler.h"
-#include "scanner.h"
 
 void compile(const char* source) {
     scanner_init(source);
@@ -18,4 +17,4 @@ void compile(const char* source) {
         printf("%2d '%.*s'\n", tok.type, tok.length, tok.start);
         if (tok.type == TOKEN_EOF) break;
     }
-} 
+};
