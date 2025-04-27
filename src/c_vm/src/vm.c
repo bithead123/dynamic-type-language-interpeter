@@ -1,6 +1,7 @@
 #include "vm.h"
 #include "compiler.h"
 #include "stdarg.h"
+#include "object.h"
 
 VM vm;
 
@@ -26,6 +27,14 @@ bool bool_is_falsey(Value v) {
     return IS_NULL(v) || (IS_BOOL(v) && !AS_BOOL(v));
 };
 
+bool equal_strings(ObjString* a, ObjString* b) {
+    if (a->length == b->length) {
+        return memcmp(a->chars, b->chars, a->length) == 0;
+    }
+
+    return false;
+}
+
 bool valuesEqual(Value a, Value b) {
     if (a.type != b.type) {
         return false;
@@ -36,6 +45,7 @@ bool valuesEqual(Value a, Value b) {
     case VALUE_BOOL: return AS_BOOL(a) == AS_BOOL(b);
     case VALUE_NULL: return true;
     case VALUE_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
+    case VALUE_OBJ: return equal_strings(AS_STRING(a), AS_STRING(b));
     
     default:
         return false;
