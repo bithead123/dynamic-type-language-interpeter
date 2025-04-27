@@ -200,6 +200,15 @@ Value vm_stack_pop() {
 
 void vm_init() {
     vm_reset_stack();
+    vm.objects = NULL;
 };
 
-void vm_destroy() {};
+
+void vm_destroy() {
+    Obj* t = vm.objects;
+    while (t != NULL) {
+        Obj* next = t->next;
+        freeObj(t);
+        t = next;
+    }
+};

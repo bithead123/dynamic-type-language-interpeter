@@ -55,3 +55,7 @@ skip:
 single pass compilation
 precedence.
 infix order.
+
+one byte instructions to compilation.
+compile преобразование токенов в инструкции и заклад в чанк.
+interpret исполнение на ВМ кода.

@@ -4,6 +4,7 @@
 #include "values.h"
 #include "common.h"
 #include "memory.h"
+#include "vm.h"
 
 typedef enum ObjType {
     OBJ_STRING,
@@ -11,6 +12,7 @@ typedef enum ObjType {
 
 struct Obj {
     ObjType type;
+    struct Obj* next;
 };
 
 typedef struct {
@@ -18,7 +20,6 @@ typedef struct {
     int length;
     char* chars;
 } ObjString;
-
 
 ObjString* copy_string(const char* chars, int length);
 ObjString* new_string(const char* chars, int length);
@@ -29,5 +30,7 @@ bool is_obj_type(Value v, ObjType type);
 
 #define AS_STRING(value) ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJ(value))->chars)
+
+void freeObj(Obj* t);
 
 #endif

@@ -10,7 +10,25 @@ bool is_obj_type(Value v, ObjType type) {
 Obj* allocate_obj(size_t size, ObjType type) {
     Obj* t = malloc(size);
     t->type = type;
+
+    t->next = vm.objects;
+    vm.objects = t;
+
     return t;
+};
+
+void freeObj(Obj* t) {
+    switch (t->type)
+    {
+    case OBJ_STRING:
+        ObjString* str = (ObjString*)t;
+        free(str->chars);
+        FREE(ObjString, t);
+        break;
+    
+    default:
+        break;
+    }
 };
 
 #define ALLOCATE_OBJ(type, objType)  \

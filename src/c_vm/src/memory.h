@@ -20,6 +20,9 @@ void* realloc_ptr(void* old_ptr, size_t old_size, size_t new_size) ;
 #define ALLOCATE(type, count) \
     (type*)malloc(sizeof(type) * count)
 
+
+#define FREE(type, ptr) MEM_FREE(type, ptr, 1)
+
 /*
     malloc
     realloc
