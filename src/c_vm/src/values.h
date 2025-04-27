@@ -8,27 +8,34 @@ typedef enum {
     VALUE_BOOL,
     VALUE_NUMBER,
     VALUE_NULL,
+    VALUE_OBJ,
 } ValueType;
+
+typedef struct Obj Obj;
+typedef struct ObjString;
 
 typedef struct {
     ValueType type;
     union {
         double number;
         bool boolean;
+        Obj* obj;
     } as;
 } Value;
 
 #define IS_BOOL(value) ((value).type == VALUE_BOOL)
 #define IS_NUMBER(value) ((value).type == VALUE_NUMBER)
 #define IS_NULL(value) ((value).type == VALUE_NULL)
+#define IS_OBJ(value) ((value).type == VALUE_OBJ)
 
 #define BOOL_VAl(value) ((Value){VALUE_BOOL, {.boolean = value}}) 
 #define NUMBER_VAL(value) ((Value){VALUE_NUMBER, {.number = value}}) 
 #define NULL_VAL ((Value){VALUE_NULL, {.number = 0}}) 
+#define OBJ_VAL(object) ((Value){VALUE_OBJ, {.obj = (Obj*)object}}) 
 
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
-
+#define AS_OBJ(value) ((value).as.obj)
 
 typedef struct {
     int count;

@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "debug.h"
+#include "object.h"
 
 typedef struct {
     Token current;
@@ -120,11 +121,15 @@ void comp_number() {
     emit_constant(vv);
 };
 
+void comp_string() {
+    emit_constant(OBJ_VAL(copy_string(
+        parser.previous.start+1, parser.previous.length-2)));
+};
+
 void unary();
 void binary();
 void grouping();
 void literal();
-
 
 ParseRule rules[] = {
       [TOKEN_LEFT_PAREN]    = {grouping,    NULL,   PREC_NONE},
@@ -147,8 +152,8 @@ ParseRule rules[] = {
       [TOKEN_LESS]          = {NULL,        binary,   PREC_COMPARISON},
       [TOKEN_LESS_EQ]       = {NULL,        binary,   PREC_COMPARISON},
       [TOKEN_ID]            = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_STRING]        = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_NUMBER]        = {comp_number,      NULL,   PREC_NONE},
+      [TOKEN_STRING]        = {comp_string, NULL,   PREC_NONE},
+      [TOKEN_NUMBER]        = {comp_number, NULL,   PREC_NONE},
       [TOKEN_AND]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_CLASS]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_ELSE]          = {NULL,        NULL,   PREC_NONE},

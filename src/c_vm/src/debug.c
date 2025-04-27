@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "object.h"
 
 int get_code_offset(uint8_t t) {
     switch (t)
@@ -95,13 +96,26 @@ void disasm_constant_instr(const char* name, Chunk* t, int offset) {
     printf("'\n");
 };
 
+void print_object(Value v) {
+    switch (OBJ_TYPE(v))
+    {
+    case OBJ_STRING:
+        printf("\"%s\"", AS_CSTRING(v));
+        break;
+    
+    default:
+        return;
+    }
+};
+
 void print_value(Value v) {
     switch (v.type)
     {
     case VALUE_BOOL: printf(AS_BOOL(v) ? "True" : "False"); break;
     case VALUE_NULL: printf("Null"); break;
     case VALUE_NUMBER: printf("%g", AS_NUMBER(v)); break;
-    
+    case VALUE_OBJ: print_object(v); break;
+
     default:
         return;
     }
