@@ -50,3 +50,8 @@ skip:
 - for
 - continue
 - break
+
+------------------------------- CVM
+single pass compilation
+precedence.
+infix order.
