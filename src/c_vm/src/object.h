@@ -21,6 +21,7 @@ typedef struct {
 
 
 ObjString* copy_string(const char* chars, int length);
+ObjString* new_string(const char* chars, int length);
 bool is_obj_type(Value v, ObjType type);
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)

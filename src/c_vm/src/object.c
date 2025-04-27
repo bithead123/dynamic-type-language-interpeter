@@ -23,6 +23,9 @@ ObjString* allocate_string(char* chars, int length) {
     return s;
 };
 
+ObjString* new_string(const char* chars, int length) {
+    return allocate_string(chars, length);
+};
 
 ObjString* copy_string(const char* chars, int length) {
     char* heapChars = ALLOCATE(char, length+1);

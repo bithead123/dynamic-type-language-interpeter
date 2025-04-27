@@ -27,7 +27,7 @@ bool bool_is_falsey(Value v) {
     return IS_NULL(v) || (IS_BOOL(v) && !AS_BOOL(v));
 };
 
-bool equal_strings(ObjString* a, ObjString* b) {
+bool strings_equal(ObjString* a, ObjString* b) {
     if (a->length == b->length) {
         return memcmp(a->chars, b->chars, a->length) == 0;
     }
@@ -45,12 +45,25 @@ bool valuesEqual(Value a, Value b) {
     case VALUE_BOOL: return AS_BOOL(a) == AS_BOOL(b);
     case VALUE_NULL: return true;
     case VALUE_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-    case VALUE_OBJ: return equal_strings(AS_STRING(a), AS_STRING(b));
+    case VALUE_OBJ: return strings_equal(AS_STRING(a), AS_STRING(b));
     
     default:
         return false;
     }
 };
+
+ObjString* strings_concat() {
+    ObjString* b = AS_STRING(vm_stack_pop());
+    ObjString* a = AS_STRING(vm_stack_pop());
+    int len = a->length + b->length;
+    char* chars = ALLOCATE(char, len + 1);
+    memcpy(chars, a->chars, a->length);
+    memcpy(chars + a->length, b->chars, b->length);
+    chars[len] = '\0';
+
+    ObjString* str = new_string(chars, len);
+    return str;
+}
 
 
 INTERPRET_RESULT run() {
@@ -58,6 +71,11 @@ INTERPRET_RESULT run() {
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
     #define BINARY_OP(valueType, operation) \
         do {\
+            if (IS_STRING(stack_peek(0)) && IS_STRING(stack_peek(1))) { \
+                vm_stack_push(OBJ_VAL(strings_concat())); \
+                break; \
+            } \
+            \
             if (!IS_NUMBER(stack_peek(0)) || !IS_NUMBER(stack_peek(1))) { \
                 runtime_error("Operands must be numbers in BinaryOp."); \
                 return INTERPRET_RUNTIME_ERROR; \
