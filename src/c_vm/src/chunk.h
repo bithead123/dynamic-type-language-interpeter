@@ -5,6 +5,8 @@
 #include "memory.h"
 #include "values.h"
 
+#define DEFAULT_CHUNK_CAPACITY 4
+
 typedef enum {
     OP_RET,
     OP_CONST,
@@ -14,6 +16,11 @@ typedef enum {
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    // bools
+    OP_NULL,
+    OP_TRUE,
+    OP_FALSE,
+    OP_NOT,
 } OP_CODE;
 
 typedef struct {

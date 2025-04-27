@@ -1,16 +1,43 @@
 #include "vm.h"
 #include "compiler.h"
+#include "stdarg.h"
 
 VM vm;
+
+Value stack_peek(int distance) {
+    return vm.stack_top[-1 - distance];
+};
+
+void runtime_error(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputs("\n", stderr);
+
+    size_t instr = vm.instr_ptr - vm.chunk->code - 1;
+    int line = vm.chunk->lines[instr];
+    fprintf(stderr, "[line %d] in script\n", line);
+    vm_reset_stack();
+};
+
+// ------------ TOOLS
+bool bool_is_falsey(Value v) {
+    return IS_NULL(v) || (IS_BOOL(v) && !AS_BOOL(v));
+}
 
 INTERPRET_RESULT run() {
     #define READ_BYTE() (*vm.instr_ptr++)
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
-    #define BINARY_OP(operation) \
+    #define BINARY_OP(valueType, operation) \
         do {\
-            double b = vm_stack_pop(); \
-            double a = vm_stack_pop(); \
-            vm_stack_push(a operation b); \
+            if (!IS_NUMBER(stack_peek(0)) || !IS_NUMBER(stack_peek(1))) { \
+                runtime_error("Operands must be numbers in BinaryOp."); \
+                return INTERPRET_RUNTIME_ERROR; \
+            } \
+            double b = AS_NUMBER(vm_stack_pop()); \
+            double a = AS_NUMBER(vm_stack_pop()); \
+            vm_stack_push(valueType(a operation b)); \
         } while (false) \
 
     for (;;) {
@@ -36,16 +63,33 @@ INTERPRET_RESULT run() {
             printf(" ret\n");
             return INTERPRET_OK;
 
-        case OP_NEGATE: vm_stack_push(-vm_stack_pop()); break;
-        case OP_ADD: BINARY_OP(+); break;
-        case OP_SUB: BINARY_OP(-); break;
-        case OP_MUL: BINARY_OP(*); break;
-        case OP_DIV: BINARY_OP(/); break;
+        case OP_NEGATE: 
+            // vm_stack_push(-vm_stack_pop()); break;
+            if (!IS_NUMBER(stack_peek(0))) {
+                runtime_error("Operand must be a number.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            vm_stack_push(NUMBER_VAL(-AS_NUMBER(vm_stack_pop())));
+            break;
+
+        case OP_ADD: BINARY_OP(NUMBER_VAL, +); break;
+        case OP_SUB: BINARY_OP(NUMBER_VAL, -); break;
+        case OP_MUL: BINARY_OP(NUMBER_VAL, *); break;
+        case OP_DIV: BINARY_OP(NUMBER_VAL, /); break;
 
         case OP_CONST:
             Value constant = READ_CONSTANT();
             vm_stack_push(constant);
             break; 
+
+        case OP_NULL: vm_stack_push(NULL_VAL); break;
+        case OP_TRUE: vm_stack_push(BOOL_VAl(true)); break;
+        case OP_FALSE: vm_stack_push(BOOL_VAl(false)); break;
+
+        case OP_NOT: 
+            vm_stack_push(BOOL_VAl(bool_is_falsey(vm_stack_pop()))); 
+            break;
 
         default:
             break;

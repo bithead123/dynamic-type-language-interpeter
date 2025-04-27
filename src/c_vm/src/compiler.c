@@ -112,12 +112,13 @@ void end_compiler() {
 
 void comp_number() {
     double v = strtod(parser.previous.start, NULL);
-    emit_constant(v);
+    emit_constant(NUMBER_VAL(v));
 };
 
 void unary();
 void binary();
 void grouping();
+void literal();
 
 
 ParseRule rules[] = {
@@ -132,7 +133,7 @@ ParseRule rules[] = {
       [TOKEN_SEMICOLON]     = {NULL,        NULL,   PREC_NONE},
       [TOKEN_SLASH]         = {NULL,        binary, PREC_FACTOR},
       [TOKEN_STAR]          = {NULL,        binary, PREC_FACTOR},
-      [TOKEN_BANG]          = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_BANG]          = {unary,        NULL,   PREC_NONE},
       [TOKEN_BANG_EQUAL]    = {NULL,        NULL,   PREC_NONE},
       [TOKEN_EQ]            = {NULL,        NULL,   PREC_NONE},
       [TOKEN_EQ_EQ]         = {NULL,        NULL,   PREC_NONE},
@@ -146,17 +147,17 @@ ParseRule rules[] = {
       [TOKEN_AND]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_CLASS]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_ELSE]          = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_FALSE]         = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_FALSE]         = {literal,        NULL,   PREC_NONE},
       [TOKEN_FOR]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_FUN]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_IF]            = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_NULL]          = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_NULL]          = {literal,        NULL,   PREC_NONE},
       [TOKEN_OR]            = {NULL,        NULL,    PREC_OR},
       [TOKEN_PRINT]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_RETURN]        = {NULL,        NULL,   PREC_NONE},
       [TOKEN_SUPER]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_THIS]          = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_TRUE]          = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_TRUE]          = {literal,        NULL,   PREC_NONE},
       [TOKEN_VAR]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_WHILE]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_ERROR]         = {NULL,        NULL,   PREC_NONE},
@@ -172,18 +173,32 @@ void parse_precedence(PrecedenceOrder prec) {
 
     ParseFunc prefix = get_rule(parser.previous.type)->prefix;
     if (prefix == NULL) {
-        error("Expect expression.");
+        error("Expect expression (prefix).");
         return;
     }
 
     prefix();
+    printf("PREFIX='%.*s'\n", parser.previous.length, parser.previous.start);
 
     while(prec <= get_rule(parser.current.type)->prec) {
         advance();
         ParseFunc infix = get_rule(parser.previous.type)->infix;
         infix();
+        printf("INFIX='%.*s'\n", parser.previous.length, parser.previous.start);
     }
 };
+
+void literal() {
+    switch (parser.previous.type)
+    {
+    case TOKEN_TRUE: emit_byte(OP_TRUE); break;
+    case TOKEN_FALSE: emit_byte(OP_FALSE); break;
+    case TOKEN_NULL: emit_byte(OP_NULL); break;
+
+    default:
+        return;
+    }
+}
 
 void unary() {
     // -a
@@ -192,11 +207,11 @@ void unary() {
     
     // compile operand
     parse_precedence(PREC_UNARY);
-    //expression();
- 
+
     switch (operator)
     {
         case TOKEN_MINUS: emit_byte(OP_NEGATE); break;
+        case TOKEN_BANG: emit_byte(OP_NOT); break;
         default: return;
     }
 };

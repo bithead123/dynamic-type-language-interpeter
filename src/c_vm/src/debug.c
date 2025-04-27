@@ -18,6 +18,14 @@ int get_code_offset(uint8_t t) {
     case OP_CONST:
         return 2;
 
+    case OP_TRUE:
+    case OP_FALSE:
+    case OP_NULL:
+        return 1;
+
+    case OP_NOT:
+        return 1;
+
     default:
         return 1;
     }
@@ -53,6 +61,9 @@ int disasm_chunk_code(Chunk* t, int offset) {
         disasm_constant_instr("OP_NEGATE", t, offset);
         break;
     
+    case OP_NOT:
+        disasm_constant_instr("OP_NOT", t, offset);
+
     default:
         printf("Unknown opcode %d\n", instr);
         break;
@@ -69,5 +80,13 @@ void disasm_constant_instr(const char* name, Chunk* t, int offset) {
 };
 
 void print_value(Value v) {
-    printf("%g", v);
+    switch (v.type)
+    {
+    case VALUE_BOOL: printf(AS_BOOL(v) ? "True" : "False"); break;
+    case VALUE_NULL: printf("Null"); break;
+    case VALUE_NUMBER: printf("%g", AS_NUMBER(v)); break;
+    
+    default:
+        return;
+    }
 };
