@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "debug.h"
 
 typedef struct {
     Token current;
@@ -74,12 +75,15 @@ Chunk* current_chunk() {
     return compiling_chunk;
 };
 
-uint8_t make_constant(Value value) {
-    int const_index = chunk_add_constant(current_chunk(), value);
+uint8_t make_constant(Value reprValue) {
+    int const_index = chunk_add_constant(current_chunk(), reprValue);
+
     if (const_index > UINT8_MAX) {
         error("too many constants in one chunk.");
         return 0;
     }
+
+    Value vg = compiling_chunk->constants.values[const_index];
 
     return (uint8_t)const_index;
 };
@@ -112,7 +116,8 @@ void end_compiler() {
 
 void comp_number() {
     double v = strtod(parser.previous.start, NULL);
-    emit_constant(NUMBER_VAL(v));
+    Value vv = NUMBER_VAL(v);
+    emit_constant(vv);
 };
 
 void unary();
@@ -134,13 +139,13 @@ ParseRule rules[] = {
       [TOKEN_SLASH]         = {NULL,        binary, PREC_FACTOR},
       [TOKEN_STAR]          = {NULL,        binary, PREC_FACTOR},
       [TOKEN_BANG]          = {unary,        NULL,   PREC_NONE},
-      [TOKEN_BANG_EQUAL]    = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_BANG_EQUAL]    = {NULL,        binary,   PREC_EQUALITY},
       [TOKEN_EQ]            = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_EQ_EQ]         = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_GT]            = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_GT_EQ]         = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_LESS]          = {NULL,        NULL,   PREC_NONE},
-      [TOKEN_LESS_EQ]       = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_EQ_EQ]         = {NULL,        binary,   PREC_EQUALITY},
+      [TOKEN_GT]            = {NULL,        binary,   PREC_COMPARISON},
+      [TOKEN_GT_EQ]         = {NULL,        binary,   PREC_COMPARISON},
+      [TOKEN_LESS]          = {NULL,        binary,   PREC_COMPARISON},
+      [TOKEN_LESS_EQ]       = {NULL,        binary,   PREC_COMPARISON},
       [TOKEN_ID]            = {NULL,        NULL,   PREC_NONE},
       [TOKEN_STRING]        = {NULL,        NULL,   PREC_NONE},
       [TOKEN_NUMBER]        = {comp_number,      NULL,   PREC_NONE},
@@ -178,13 +183,13 @@ void parse_precedence(PrecedenceOrder prec) {
     }
 
     prefix();
-    printf("PREFIX='%.*s'\n", parser.previous.length, parser.previous.start);
+    //printf("PREFIX='%.*s'\n", parser.previous.length, parser.previous.start);
 
     while(prec <= get_rule(parser.current.type)->prec) {
         advance();
         ParseFunc infix = get_rule(parser.previous.type)->infix;
         infix();
-        printf("INFIX='%.*s'\n", parser.previous.length, parser.previous.start);
+        //printf("INFIX='%.*s'\n", parser.previous.length, parser.previous.start);
     }
 };
 
@@ -227,6 +232,15 @@ void binary() {
     case TOKEN_MINUS: emit_byte(OP_SUB); break;
     case TOKEN_STAR: emit_byte(OP_MUL); break;
     case TOKEN_SLASH: emit_byte(OP_DIV); break;
+
+    // comparison
+    case TOKEN_BANG_EQUAL: emit_bytes(OP_EQUAL, OP_NOT); break;
+    case TOKEN_LESS_EQ: emit_bytes(OP_GREATER, OP_NOT); break;
+    case TOKEN_GT_EQ: emit_bytes(OP_LESS, OP_NOT); break;
+    case TOKEN_LESS: emit_byte(OP_LESS); break;
+    case TOKEN_GT: emit_byte(OP_GREATER); break;
+    case TOKEN_EQ_EQ: emit_byte(OP_EQUAL); break;
+
     default:
         return;
     }

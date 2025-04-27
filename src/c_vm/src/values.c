@@ -10,7 +10,10 @@ void valueArray_init(ValueArray* t, int array_length) {
     t->count = 0;
 };
 
-void valueArray_write(ValueArray* t, Value value) {
+void valueArray_write(ValueArray* t, Value reprtValue) {
+
+    //printf("valueArray_write=%g \n", reprtValue.as.number);
+
     if (t->count+1 > t->capacity) {
         // growing array
         int old_cap = t->capacity;
@@ -20,7 +23,8 @@ void valueArray_write(ValueArray* t, Value value) {
         t->capacity = new_cap;
     }
     
-    t->values[t->count++] = value;
+    t->values[t->count++] = reprtValue;
+   // printf("CONST_V=%g   , %g\n", t->values[t->count-1].as.number, reprtValue.as.number);
 };
 
 void valueArray_destroy(ValueArray* t) {

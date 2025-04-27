@@ -24,7 +24,24 @@ void runtime_error(const char* format, ...) {
 // ------------ TOOLS
 bool bool_is_falsey(Value v) {
     return IS_NULL(v) || (IS_BOOL(v) && !AS_BOOL(v));
-}
+};
+
+bool valuesEqual(Value a, Value b) {
+    if (a.type != b.type) {
+        return false;
+    }
+
+    switch (a.type)
+    {
+    case VALUE_BOOL: return AS_BOOL(a) == AS_BOOL(b);
+    case VALUE_NULL: return true;
+    case VALUE_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
+    
+    default:
+        return false;
+    }
+};
+
 
 INTERPRET_RESULT run() {
     #define READ_BYTE() (*vm.instr_ptr++)
@@ -44,6 +61,7 @@ INTERPRET_RESULT run() {
 
         #ifdef DEBUG_TRACE_EXECUTION
 
+        // dump stack each instruction
         printf("      ");
         for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
             printf("[");
@@ -60,7 +78,7 @@ INTERPRET_RESULT run() {
         {
         case OP_RET:
             print_value(vm_stack_pop());
-            printf(" ret\n");
+            printf(" RET\n");
             return INTERPRET_OK;
 
         case OP_NEGATE: 
@@ -90,6 +108,15 @@ INTERPRET_RESULT run() {
         case OP_NOT: 
             vm_stack_push(BOOL_VAl(bool_is_falsey(vm_stack_pop()))); 
             break;
+
+        case OP_EQUAL:
+            Value a = vm_stack_pop();
+            Value b = vm_stack_pop();
+            vm_stack_push(BOOL_VAl(valuesEqual(a, b)));
+            break;
+
+        case OP_LESS: BINARY_OP(BOOL_VAl, <); break;
+        case OP_GREATER: BINARY_OP(BOOL_VAl, >); break;
 
         default:
             break;
