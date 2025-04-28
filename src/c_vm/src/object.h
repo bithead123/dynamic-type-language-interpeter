@@ -19,6 +19,7 @@ typedef struct {
     Obj obj;
     int length;
     char* chars;
+    uint32_t hash;
 } ObjString;
 
 ObjString* copy_string(const char* chars, int length);

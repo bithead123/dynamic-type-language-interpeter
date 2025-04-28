@@ -34,20 +34,33 @@ void freeObj(Obj* t) {
 #define ALLOCATE_OBJ(type, objType)  \
     allocate_obj(sizeof(type), objType)
 
-ObjString* allocate_string(char* chars, int length) {
+ObjString* allocate_string(char* chars, int length, uint32_t hash) {
     ObjString* s = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     s->length = length;
+    s->hash = hash;
     s->chars = chars;
     return s;
 };
 
 ObjString* new_string(const char* chars, int length) {
-    return allocate_string(chars, length);
+    uint32_t hash = hash_string(chars, length);
+    return allocate_string(chars, length, hash);
 };
+
+uint32_t hash_string(const char* key, int length) {
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t)key[i];
+        hash *= 167777619;
+    }
+
+    return hash;
+}
 
 ObjString* copy_string(const char* chars, int length) {
     char* heapChars = ALLOCATE(char, length+1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
-    return allocate_string(heapChars, length);
+    uint32_t hash = hash_string(chars, length);
+    return allocate_string(heapChars, length, hash);
 };
