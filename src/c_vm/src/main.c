@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "stdlib.h"
 #include "string.h"
+#include "tools/hashtable.h"
 
 void repl() {
     char line[1024];
