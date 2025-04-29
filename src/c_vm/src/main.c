@@ -51,6 +51,7 @@ char* readFile(const char* path) {
 
 void runFile(const char* path) {
     char* source =  readFile(path);
+    printf(":SOURCE=%s\n", source);
     INTERPRET_RESULT result = vm_interpret_source(source);
     free(source);
 

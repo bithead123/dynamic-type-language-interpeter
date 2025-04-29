@@ -66,6 +66,8 @@ ObjString* strings_concat() {
 };
 
 INTERPRET_RESULT run() {
+    printf("[vm].run()\n");
+
     #define READ_BYTE() (*vm.instr_ptr++)
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())

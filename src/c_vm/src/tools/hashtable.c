@@ -31,6 +31,8 @@ Entry* find_entry(Entry* entries, int capacity, ObjString* key) {
             } else if (entry->key == key) {
               return entry;
             }
+
+        index = (index + 1) & (capacity - 1);
     }
 }
 

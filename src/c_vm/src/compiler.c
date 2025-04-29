@@ -208,10 +208,13 @@ void parse_precedence(PrecedenceOrder prec) {
         return;
     }
 
+    COMPILER_DEBUG_LOG("parse_precedence\n");
+
     prefix();
     //printf("PREFIX='%.*s'\n", parser.previous.length, parser.previous.start);
 
     while(prec <= get_rule(parser.current.type)->prec) {
+        COMPILER_DEBUG_LOG("parse_precedence.infix\n");
         advance();
         ParseFunc infix = get_rule(parser.previous.type)->infix;
         infix();
@@ -343,13 +346,11 @@ void compiler_sync() {
 };
 
 void namedVariable(Token token) {
-    printf("namedVariable: token=%.*s\n", token.length, token.start);
     uint8_t arg = make_id_constant(&token);
     emit_bytes(OP_GET_GLOBAL, arg);
 } 
 
 void variable() {
-    printf("variable\n");
     namedVariable(parser.previous);
 }
 
@@ -361,10 +362,11 @@ void var_decl() {
     uint8_t global = parse_variable("Expect a variable name.");
     if (match_token(TOKEN_EQ)) {
         // var foo = ...;
-        printf("var_decl.TOKEN_EQ\n");
+        COMPILER_DEBUG_LOG("var_decl.expr()\n");
         expression();
     } else {
         // var foo;
+        COMPILER_DEBUG_LOG("var_decl.null\n");
         emit_byte(OP_NULL); // default value for variable
     }
 
@@ -373,6 +375,9 @@ void var_decl() {
 };
 
 void declaration() {
+
+    COMPILER_DEBUG_LOG("declaration\n");
+    
     if (match_token(TOKEN_VAR)) {
         var_decl();
     }
@@ -399,6 +404,7 @@ bool compile(const char* source, Chunk* chunk) {
     //expression();
     //consume(TOKEN_EOF, "Expect end of expression.");
 
+    COMPILER_DEBUG_LOG("compile ok\n");
     end_compiler();
 
     return !parser.had_error;
