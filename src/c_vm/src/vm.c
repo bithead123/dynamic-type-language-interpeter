@@ -45,7 +45,7 @@ bool valuesEqual(Value a, Value b) {
     case VALUE_BOOL: return AS_BOOL(a) == AS_BOOL(b);
     case VALUE_NULL: return true;
     case VALUE_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-    case VALUE_OBJ: return strings_equal(AS_STRING(a), AS_STRING(b));
+    case VALUE_OBJ: return AS_OBJ(a) == AS_OBJ(b); // cmp by ptr
     
     default:
         return false;
@@ -63,12 +63,12 @@ ObjString* strings_concat() {
 
     ObjString* str = new_string(chars, len);
     return str;
-}
-
+};
 
 INTERPRET_RESULT run() {
     #define READ_BYTE() (*vm.instr_ptr++)
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+    #define READ_STRING() AS_STRING(READ_CONSTANT())
     #define BINARY_OP(valueType, operation) \
         do {\
             if (IS_STRING(stack_peek(0)) && IS_STRING(stack_peek(1))) { \
@@ -101,12 +101,12 @@ INTERPRET_RESULT run() {
         disasm_chunk_code(vm.chunk, (int)(vm.instr_ptr-vm.chunk->code));
         #endif
 
-        uint8_t code;
+        uint8_t code; 
         switch (code = READ_BYTE())
         {
         case OP_RET:
-            print_value(vm_stack_pop());
-            printf(" RET\n");
+            //print_value(vm_stack_pop());
+            //printf(" RET\n");
             return INTERPRET_OK;
 
         case OP_NEGATE: 
@@ -146,11 +146,40 @@ INTERPRET_RESULT run() {
         case OP_LESS: BINARY_OP(BOOL_VAl, <); break;
         case OP_GREATER: BINARY_OP(BOOL_VAl, >); break;
 
+        // statements
+        case OP_PRINT:
+            print_value(vm_stack_pop());
+            printf("\n");
+            break;
+
+        case OP_DEFINE_GLOBAL:
+            printf(":OP_DEFINE_GLOBAL\n");
+            ObjString* varname = READ_STRING();
+            hashtable_set(&vm.globals, varname, vm_stack_pop());
+            break;
+
+        case OP_GET_GLOBAL:
+            printf(":OP_GET_GLOBAL\n");
+            ObjString* get_name = READ_STRING();
+            Value var_value;
+            if (!hashtable_get(&vm.globals, get_name, &var_value)) {
+                runtime_error("Undefinded variable name '%s'", get_name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            vm_stack_push(var_value);
+            break;
+
+        case OP_POP: vm_stack_pop(); break;
+
+        
+
+
         default:
             break;
         }
     }
 
+    #undef READ_STRING
     #undef READ_BYTE
     #undef READ_CONSTANT
 }
@@ -201,6 +230,9 @@ Value vm_stack_pop() {
 void vm_init() {
     vm_reset_stack();
     vm.objects = NULL;
+    hashtable_init(&vm.strings);
+    hashtable_init(&vm.globals);
+    //vm.strings = ALLOCATE(Hashtable, 1);
 };
 
 
@@ -211,4 +243,8 @@ void vm_destroy() {
         freeObj(t);
         t = next;
     }
+
+    destroy_hashtable(&vm.strings);
+    destroy_hashtable(&vm.globals);
+    //FREE(Hashtable, vm.strings);
 };

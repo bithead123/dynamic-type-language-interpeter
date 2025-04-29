@@ -4,7 +4,6 @@
 #include "values.h"
 #include "common.h"
 #include "memory.h"
-#include "vm.h"
 
 typedef enum ObjType {
     OBJ_STRING,
@@ -15,12 +14,12 @@ struct Obj {
     struct Obj* next;
 };
 
-typedef struct {
+struct ObjString {
     Obj obj;
     int length;
     char* chars;
     uint32_t hash;
-} ObjString;
+};
 
 ObjString* copy_string(const char* chars, int length);
 ObjString* new_string(const char* chars, int length);

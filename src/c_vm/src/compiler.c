@@ -69,6 +69,16 @@ void consume(TOKEN_TYPE type, const char* msg) {
     error_at_current(msg);
 };
 
+bool check(TOKEN_TYPE type) {
+    return parser.current.type == type;
+};
+
+bool match_token(TOKEN_TYPE type) {
+    if (!check(type)) return false;
+    advance();
+    return true;
+};
+
 
 // ------------ CHUNK TOOLS
 
@@ -126,10 +136,21 @@ void comp_string() {
         parser.previous.start+1, parser.previous.length-2)));
 };
 
+uint8_t make_id_constant(Token* name) {
+    return make_constant(OBJ_VAL(copy_string(name->start, name->length)));
+};
+
+uint8_t parse_variable(const char* errorMsg) {
+    consume(TOKEN_ID, errorMsg);
+    return make_id_constant(&parser.previous);
+};
+
 void unary();
 void binary();
 void grouping();
 void literal();
+void print_statement();
+void variable();
 
 ParseRule rules[] = {
       [TOKEN_LEFT_PAREN]    = {grouping,    NULL,   PREC_NONE},
@@ -151,7 +172,7 @@ ParseRule rules[] = {
       [TOKEN_GT_EQ]         = {NULL,        binary,   PREC_COMPARISON},
       [TOKEN_LESS]          = {NULL,        binary,   PREC_COMPARISON},
       [TOKEN_LESS_EQ]       = {NULL,        binary,   PREC_COMPARISON},
-      [TOKEN_ID]            = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_ID]            = {variable,        NULL,   PREC_NONE},
       [TOKEN_STRING]        = {comp_string, NULL,   PREC_NONE},
       [TOKEN_NUMBER]        = {comp_number, NULL,   PREC_NONE},
       [TOKEN_AND]           = {NULL,        NULL,   PREC_NONE},
@@ -277,6 +298,91 @@ void advance() {
     }
 }
 
+void print_statement() {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+    emit_byte(OP_PRINT);
+};
+
+void expression_statement() {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after expression (expression_statement).");
+    emit_byte(OP_POP);
+};
+
+void statement() {
+    if (match_token(TOKEN_PRINT)) {
+        print_statement();
+    } else {
+        expression_statement();
+    }
+};
+
+// sync compiler parser state when getting some error.
+void compiler_sync() {
+    parser.panic_mode = false;
+    while(parser.current.type != TOKEN_EOF) {
+        if (parser.previous.type == TOKEN_SEMICOLON) return;
+        switch (parser.current.type)
+        {
+        case TOKEN_CLASS:
+        case TOKEN_FUN:
+        case TOKEN_VAR:
+        case TOKEN_FOR:
+        case TOKEN_IF:
+        case TOKEN_WHILE:
+        case TOKEN_PRINT:
+        case TOKEN_RETURN:
+            return;
+        
+        default:
+        }
+
+        advance();
+    }
+};
+
+void namedVariable(Token token) {
+    printf("namedVariable: token=%.*s\n", token.length, token.start);
+    uint8_t arg = make_id_constant(&token);
+    emit_bytes(OP_GET_GLOBAL, arg);
+} 
+
+void variable() {
+    printf("variable\n");
+    namedVariable(parser.previous);
+}
+
+void define_variable(uint8_t global) {
+    emit_bytes(OP_DEFINE_GLOBAL, global);
+}
+
+void var_decl() {
+    uint8_t global = parse_variable("Expect a variable name.");
+    if (match_token(TOKEN_EQ)) {
+        // var foo = ...;
+        printf("var_decl.TOKEN_EQ\n");
+        expression();
+    } else {
+        // var foo;
+        emit_byte(OP_NULL); // default value for variable
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after var_decl.");
+    define_variable(global);
+};
+
+void declaration() {
+    if (match_token(TOKEN_VAR)) {
+        var_decl();
+    }
+    else {
+        statement();
+    }
+
+    if (parser.panic_mode) compiler_sync();
+};
+
 bool compile(const char* source, Chunk* chunk) {
     scanner_init(source);
 
@@ -285,8 +391,14 @@ bool compile(const char* source, Chunk* chunk) {
     parser.panic_mode = false;
 
     advance();
-    expression();
-    consume(TOKEN_EOF, "Expect end of expression.");
+    
+    while(!match_token(TOKEN_EOF)) {
+        declaration();
+    }
+
+    //expression();
+    //consume(TOKEN_EOF, "Expect end of expression.");
+
     end_compiler();
 
     return !parser.had_error;

@@ -1,7 +1,7 @@
 #include "object.h"
 #include "stdio.h"
 #include "string.h"
-
+#include "vm.h"
 
 bool is_obj_type(Value v, ObjType type) {
     return IS_OBJ(v) && AS_OBJ(v)->type == type;
@@ -39,12 +39,11 @@ ObjString* allocate_string(char* chars, int length, uint32_t hash) {
     s->length = length;
     s->hash = hash;
     s->chars = chars;
-    return s;
-};
 
-ObjString* new_string(const char* chars, int length) {
-    uint32_t hash = hash_string(chars, length);
-    return allocate_string(chars, length, hash);
+    // vm string collect
+    hashtable_set(&vm.strings, s, NULL_VAL);
+
+    return s;
 };
 
 uint32_t hash_string(const char* key, int length) {
@@ -55,12 +54,26 @@ uint32_t hash_string(const char* key, int length) {
     }
 
     return hash;
-}
+};
+
+ObjString* new_string(const char* chars, int length) {
+    uint32_t hash = hash_string(chars, length);
+
+    ObjString* intern_str = hashtable_find_string(&vm.strings, chars, length, hash);
+    if (intern_str != NULL) return intern_str;
+
+    return allocate_string(chars, length, hash);
+};
 
 ObjString* copy_string(const char* chars, int length) {
+    uint32_t hash = hash_string(chars, length);
+
+    ObjString* intern_str = hashtable_find_string(&vm.strings, chars, length, hash);
+    if (intern_str != NULL) return intern_str;
+
     char* heapChars = ALLOCATE(char, length+1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
-    uint32_t hash = hash_string(chars, length);
+
     return allocate_string(heapChars, length, hash);
 };

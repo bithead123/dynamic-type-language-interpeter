@@ -12,7 +12,7 @@ typedef enum {
 } ValueType;
 
 typedef struct Obj Obj;
-typedef struct ObjString;
+typedef struct ObjString ObjString;
 
 typedef struct {
     ValueType type;

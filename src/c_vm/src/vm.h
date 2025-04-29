@@ -1,8 +1,10 @@
 #ifndef CVM_H
 #define CVM_H
 
+#include "tools/hashtable.h"
 #include "chunk.h"
 #include "debug.h"
+
 
 typedef enum {
     INTERPRET_OK,
@@ -19,6 +21,9 @@ typedef struct {
     Value stack[VM_STACK_MAX];
     Value* stack_top;
     Obj* objects;
+    // ---- strings ----
+    Hashtable strings;
+    Hashtable globals;
 } VM;
 
 extern VM vm;

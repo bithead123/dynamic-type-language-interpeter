@@ -1,8 +1,9 @@
 #include "hashtable.h"
+#include "string.h"
 
 #define HASHTABLE_MAX_LOAD_TO_GROW 0.75
 
-void init_hashtable(Hashtable* t) {
+void hashtable_init(Hashtable* t) {
     t->capacity = 0;
     t->count = 0;
     t->entries = NULL;
@@ -10,7 +11,7 @@ void init_hashtable(Hashtable* t) {
 
 void destroy_hashtable(Hashtable* t) {
     free(t->entries);
-    init_hashtable(t);
+    hashtable_init(t);
 };
 
 Entry* find_entry(Entry* entries, int capacity, ObjString* key) {
@@ -22,7 +23,7 @@ Entry* find_entry(Entry* entries, int capacity, ObjString* key) {
         Entry* entry = &entries[index];
 
             if (entry->key == NULL) {
-              if (IS_NIL(entry->value)) {
+              if (IS_NULL(entry->value)) {
                 return tombstone != NULL ? tombstone : entry;
               } else {
                 if (tombstone == NULL) tombstone = entry;
@@ -44,7 +45,14 @@ void adjust_capacity(Hashtable* t, int newCapacity) {
         entries[i].value = NULL_VAL;
     }
 
-    t->count++;
+    t->count=0;
+
+    if (t->entries == NULL) {
+        t->entries = entries;
+        t->count = 0;
+        t->capacity = newCapacity;
+        return;
+    }
 
     // put values to new entries from old table
     for (int i = 0; i < newCapacity; i++) {
@@ -57,7 +65,9 @@ void adjust_capacity(Hashtable* t, int newCapacity) {
         t->count++;
     }
 
-    free(t->entries);
+    if (t->entries != NULL) {
+        free(t->entries);
+    }
     t->capacity = newCapacity;
     t->entries = entries;
 }
@@ -104,4 +114,23 @@ bool hashtable_delete(Hashtable* t, ObjString* key) {
     en->key = NULL;
     en->value = BOOL_VAl(true);
     return true;
+};
+
+ObjString* hashtable_find_string(Hashtable* t, const char* chars, int length, uint32_t hash) {
+    if (t->count <= 0) return NULL;
+
+    uint32_t index = hash % t->capacity;
+    for (;;) {
+        Entry* en = &t->entries[index];
+        if (en->key == NULL) {
+            if (IS_NULL(en->value)) return NULL;
+        }
+        else if (en->key->length == length &&
+            en->key->hash == hash &&
+            memcmp(en->key->chars, chars, length) == 0) {
+                return en->key;
+        }
+
+        index = (index + 1) % t->capacity;
+    }
 };
