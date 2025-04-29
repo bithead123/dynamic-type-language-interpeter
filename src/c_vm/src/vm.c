@@ -160,6 +160,15 @@ INTERPRET_RESULT run() {
             hashtable_set(&vm.globals, varname, vm_stack_pop());
             break;
 
+        case OP_SET_GLOBAL:
+            ObjString* set_glob_name = READ_STRING();
+            if (hashtable_set(&vm.globals, set_glob_name, stack_peek(0))) {
+                hashtable_delete(&vm.globals, set_glob_name);
+                runtime_error("Undefinded used variable name '%s'", set_glob_name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+
         case OP_GET_GLOBAL:
             printf(":OP_GET_GLOBAL\n");
             ObjString* get_name = READ_STRING();

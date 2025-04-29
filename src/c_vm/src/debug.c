@@ -85,6 +85,7 @@ int disasm_chunk_code(Chunk* t, int offset) {
     case OP_POP: disasm_constant_instr("OP_POP", t, offset); break;
     case OP_DEFINE_GLOBAL: disasm_constant_instr("OP_DEFINE_GLOBAL", t, offset); break;
     case OP_GET_GLOBAL: disasm_constant_instr("OP_GET_GLOBAL", t, offset); break;
+    case OP_SET_GLOBAL: disasm_constant_instr("OP_SET_GLOBAL", t, offset); break;
 
     default:
         printf("Unknown opcode %d\n", instr);

@@ -23,7 +23,7 @@ typedef enum {
     PREC_PRIMARY,
 } PrecedenceOrder;
 
-typedef void (*ParseFunc)();
+typedef void (*ParseFunc)(bool canAssign);
 
 typedef struct  {
     ParseFunc prefix;
@@ -125,13 +125,13 @@ void end_compiler() {
 
 // -------------------- PARSING
 
-void comp_number() {
+void comp_number(bool canAssign) {
     double v = strtod(parser.previous.start, NULL);
     Value vv = NUMBER_VAL(v);
     emit_constant(vv);
 };
 
-void comp_string() {
+void comp_string(bool canAssign) {
     emit_constant(OBJ_VAL(copy_string(
         parser.previous.start+1, parser.previous.length-2)));
 };
@@ -145,12 +145,11 @@ uint8_t parse_variable(const char* errorMsg) {
     return make_id_constant(&parser.previous);
 };
 
-void unary();
+void unary(bool canAssign);
 void binary();
-void grouping();
-void literal();
-void print_statement();
-void variable();
+void grouping(bool canAssign);
+void literal(bool canAssign);
+void variable(bool canAssign);
 
 ParseRule rules[] = {
       [TOKEN_LEFT_PAREN]    = {grouping,    NULL,   PREC_NONE},
@@ -210,19 +209,24 @@ void parse_precedence(PrecedenceOrder prec) {
 
     COMPILER_DEBUG_LOG("parse_precedence\n");
 
-    prefix();
+    bool can_assign = prec <= PREC_ASSIGMENT;
+    prefix(can_assign);
     //printf("PREFIX='%.*s'\n", parser.previous.length, parser.previous.start);
 
     while(prec <= get_rule(parser.current.type)->prec) {
         COMPILER_DEBUG_LOG("parse_precedence.infix\n");
         advance();
         ParseFunc infix = get_rule(parser.previous.type)->infix;
-        infix();
+        infix(can_assign);
         //printf("INFIX='%.*s'\n", parser.previous.length, parser.previous.start);
+    }
+
+    if (can_assign && match_token(TOKEN_EQ)) {
+        error("Invalid assigment target.");
     }
 };
 
-void literal() {
+void literal(bool canAssign) {
     switch (parser.previous.type)
     {
     case TOKEN_TRUE: emit_byte(OP_TRUE); break;
@@ -234,7 +238,7 @@ void literal() {
     }
 }
 
-void unary() {
+void unary(bool canAssign) {
     // -a
 
     TOKEN_TYPE operator = parser.previous.type;
@@ -275,7 +279,7 @@ void binary() {
     }
 };
 
-void grouping() {
+void grouping(bool canAssign) {
     // ( expr )
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
@@ -345,13 +349,20 @@ void compiler_sync() {
     }
 };
 
-void namedVariable(Token token) {
+void named_variable(Token token, bool canAssign) {
     uint8_t arg = make_id_constant(&token);
-    emit_bytes(OP_GET_GLOBAL, arg);
+
+    if (canAssign && match_token(TOKEN_EQ)) {
+        expression(); // parse arg
+        emit_bytes(OP_SET_GLOBAL, arg);
+    }
+    else {
+        emit_bytes(OP_GET_GLOBAL, arg);
+    }
 } 
 
-void variable() {
-    namedVariable(parser.previous);
+void variable(bool canAssign) {
+    named_variable(parser.previous, canAssign);
 }
 
 void define_variable(uint8_t global) {

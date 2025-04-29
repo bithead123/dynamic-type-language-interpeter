@@ -5,7 +5,10 @@
 
 #ifdef COMPILER_DEBUG_TRACE
 #define COMPILER_DEBUG_LOG(msg) printf(msg)
+#else 
+#define COMPILER_DEBUG_LOG(msg)
 #endif
+
 
 #include "scanner.h"
 #include "vm.h"
