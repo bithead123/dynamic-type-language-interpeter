@@ -39,6 +39,12 @@ void disasm_chunk(Chunk* t, const char* name) {
     }
 };
 
+int byte_instruction(const char* name, Chunk* chunk, int offset) {
+    uint8_t slot = chunk->code[offset+1];
+    printf("%-16s %4d\n", name, slot);
+    return offset + 2;
+};
+
 int disasm_chunk_code(Chunk* t, int offset) {
     printf("%04d ", offset);
     uint8_t instr = t->code[offset];
@@ -87,6 +93,9 @@ int disasm_chunk_code(Chunk* t, int offset) {
     case OP_GET_GLOBAL: disasm_constant_instr("OP_GET_GLOBAL", t, offset); break;
     case OP_SET_GLOBAL: disasm_constant_instr("OP_SET_GLOBAL", t, offset); break;
 
+    case OP_SET_LOCAL: byte_instruction("OP_SET_LOCAL", t, offset); break;
+    case OP_GET_LOCAL: byte_instruction("OP_GET_LOCAL", t, offset); break;
+
     default:
         printf("Unknown opcode %d\n", instr);
         break;
@@ -96,7 +105,7 @@ int disasm_chunk_code(Chunk* t, int offset) {
 };
 
 void disasm_constant_instr(const char* name, Chunk* t, int offset) {
-    printf("disasm_constant_instr\n");
+    printf("disasm_constant_instr ");
     uint8_t constant_index = t->code[offset+1]; // get operand 1 (index)
     printf("%-16s %4d '", name, constant_index);
     print_value(t->constants.values[constant_index]);

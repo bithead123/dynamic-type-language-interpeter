@@ -66,8 +66,7 @@ ObjString* strings_concat() {
 };
 
 INTERPRET_RESULT run() {
-    printf("[vm].run()\n");
-
+    
     #define READ_BYTE() (*vm.instr_ptr++)
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())
@@ -183,6 +182,15 @@ INTERPRET_RESULT run() {
 
         case OP_POP: vm_stack_pop(); break;
 
+        case OP_SET_LOCAL:
+            uint8_t set_slot = READ_BYTE();
+            vm.stack[set_slot] = stack_peek(0);
+            break;
+
+        case OP_GET_LOCAL:
+            uint8_t get_slot = READ_BYTE();
+            vm_stack_push(vm.stack[get_slot]);
+            break;
 
         default:
             break;

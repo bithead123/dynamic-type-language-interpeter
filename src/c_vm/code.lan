@@ -1,6 +1,6 @@
-var foo = "good";
-foo = "a";
-foo = "b";
-foo = "c";
-var f2 = 123;
-var foo2 = 123;
+{
+    var foo = 10;
+    {
+        print foo;
+    }
+}

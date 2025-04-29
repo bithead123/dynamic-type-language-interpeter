@@ -1,6 +1,20 @@
 #include "compiler.h"
 #include "debug.h"
 #include "object.h"
+#include "string.h"
+
+#define UINT8_COUNT (UINT8_MAX + 1)
+
+typedef struct {
+    int depth;
+    Token name;
+} Local;
+
+typedef struct {
+    int local_count;
+    int scope_depth;
+    Local locals[UINT8_COUNT];
+} Compiler;
 
 typedef struct {
     Token current;
@@ -32,6 +46,7 @@ typedef struct  {
 } ParseRule;
 
 Parser parser;
+Compiler* current_comp = NULL;
 Chunk* compiling_chunk;
 Hashtable string_constants;
 
@@ -80,6 +95,55 @@ bool match_token(TOKEN_TYPE type) {
     return true;
 };
 
+// ---- Compiler tools
+// popping local variables after scope end.
+void shrink_local_variables() {
+    while(current_comp->local_count > 0 &&
+        current_comp->locals[current_comp->local_count-1].depth >
+        current_comp->scope_depth) {
+            COMPILER_DEBUG_LOG("shrink_local_variables\n");
+            emit_byte(OP_POP);
+            current_comp->local_count--;
+        }
+};
+
+bool identifier_equal(Token* a, Token* b) {
+    if (a->length != b->length) return false;
+    return (strncmp(a->start, b->start, a->length) == 0);
+};
+
+// try to find local variable and return they index.
+int resolve_local(Compiler* comp, Token* name) {
+    for (int i = comp->local_count - 1; i >= 0; i--) {
+        Local* local = &comp->locals[i];
+        if (identifier_equal(name, &local->name)) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+void scope_begin() {
+    current_comp->scope_depth++;
+};
+
+void scope_end() {
+    current_comp->scope_depth--;
+    shrink_local_variables();
+};
+
+void add_local(Token name) {
+    
+    if (current_comp->local_count == UINT8_COUNT) {
+        error("Too many local variables in function.");
+        return;
+    }
+
+    Local* local = &current_comp->locals[current_comp->local_count++];
+    local->name = name;
+    local->depth = current_comp->scope_depth;
+};
 
 // ------------ CHUNK TOOLS
 
@@ -150,8 +214,34 @@ uint8_t make_id_constant(Token* name) {
     return const_index;
 };
 
+
+void declare_variable() {
+    // skip global decls
+    if (current_comp->scope_depth == 0) return;
+
+    Token* name = &parser.previous;
+
+    // check var in same scope
+    for (int i = current_comp->local_count -1; i >= 0; i--) {
+        Local* local = &current_comp->locals[i];
+        if (local->depth != -1 && local->depth < current_comp->scope_depth) {
+            break;
+        }
+
+        if (identifier_equal(name, &local->name)) {
+            error("Already a variable with this name in this scope.");
+        }
+    }
+
+    add_local(*name);
+};
+
 uint8_t parse_variable(const char* errorMsg) {
     consume(TOKEN_ID, errorMsg);
+
+    declare_variable();
+    if (current_comp->scope_depth > 0) return 0;
+
     return make_id_constant(&parser.previous);
 };
 
@@ -327,10 +417,24 @@ void expression_statement() {
     emit_byte(OP_POP);
 };
 
+void block() {
+    while(!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+        declaration();
+    }
+
+    consume(TOKEN_RIGHT_BRACE, "Expect ';' after block.");
+};
+
 void statement() {
     if (match_token(TOKEN_PRINT)) {
         print_statement();
-    } else {
+    } 
+    else if (match_token(TOKEN_LEFT_BRACE)) {
+        scope_begin();
+        block();
+        scope_end();
+    }
+    else {
         expression_statement();
     }
 };
@@ -360,14 +464,27 @@ void compiler_sync() {
 };
 
 void named_variable(Token token, bool canAssign) {
-    uint8_t arg = make_id_constant(&token);
+
+    uint8_t getOp, setOp;
+    int arg = resolve_local(current_comp, &token);
+    if (arg != -1) {
+        // its local var
+        getOp = OP_GET_LOCAL;
+        setOp = OP_SET_LOCAL;
+    }
+    else {
+        // its global var
+        arg = make_id_constant(&token);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+    }
 
     if (canAssign && match_token(TOKEN_EQ)) {
         expression(); // parse arg
-        emit_bytes(OP_SET_GLOBAL, arg);
+        emit_bytes(setOp, (uint8_t)arg);
     }
     else {
-        emit_bytes(OP_GET_GLOBAL, arg);
+        emit_bytes(getOp, (uint8_t)arg);
     }
 } 
 
@@ -376,6 +493,12 @@ void variable(bool canAssign) {
 }
 
 void define_variable(uint8_t global) {
+
+    // pass code for local vars
+    if (current_comp->scope_depth > 0) {
+        return;
+    }
+
     emit_bytes(OP_DEFINE_GLOBAL, global);
 }
 
@@ -411,6 +534,9 @@ void declaration() {
 
 bool compile(const char* source, Chunk* chunk) {
     scanner_init(source);
+
+    Compiler comp;
+    compiler_init(&comp);
 
     compiling_chunk = chunk;
     parser.had_error = false;
@@ -448,3 +574,11 @@ void dump_pass() {
         if (tok.type == TOKEN_EOF) break;
     }
 }
+
+void compiler_init(Compiler* comp) {
+    COMPILER_DEBUG_LOG("compiler_init\n");
+    comp->local_count = 0;
+    comp->scope_depth = 0;
+    current_comp = comp;
+};
+
