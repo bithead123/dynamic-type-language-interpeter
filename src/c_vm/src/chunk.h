@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "values.h"
 
-#define DEFAULT_CHUNK_CAPACITY 4
+#define DEFAULT_CHUNK_CAPACITY 128
 
 typedef enum {
     OP_RET,

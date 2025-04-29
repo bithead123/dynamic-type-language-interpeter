@@ -96,6 +96,7 @@ int disasm_chunk_code(Chunk* t, int offset) {
 };
 
 void disasm_constant_instr(const char* name, Chunk* t, int offset) {
+    printf("disasm_constant_instr\n");
     uint8_t constant_index = t->code[offset+1]; // get operand 1 (index)
     printf("%-16s %4d '", name, constant_index);
     print_value(t->constants.values[constant_index]);

@@ -15,78 +15,79 @@ void destroy_hashtable(Hashtable* t) {
 };
 
 Entry* find_entry(Entry* entries, int capacity, ObjString* key) {
-    uint32_t index = key->hash % capacity;
+
+uint32_t index = key->hash & (capacity - 1);
+
+  Entry* tombstone = NULL;
+  
+  for (;;) {
+    Entry* entry = &entries[index];
+
+//> find-tombstone
+    if (entry->key == NULL) {
+      if (IS_NULL(entry->value)) {
+        // Empty entry.
+        return tombstone != NULL ? tombstone : entry;
+      } else {
+        // We found a tombstone.
+        if (tombstone == NULL) tombstone = entry;
+      }
+    } else if (entry->key == key) {
+      // We found the key.
+      return entry;
+    }
+
+    index = (index + 1) & (capacity - 1);
+  }
+}
+
+void adjust_capacity(Hashtable* table, int capacity) {
+    Entry* entries = ALLOCATE(Entry, capacity);
+    for (int i = 0; i < capacity; i++) {
+      entries[i].key = NULL;
+      entries[i].value = NULL_VAL;
+    }
+  //> re-hash
+  
+  //> resize-init-count
+    table->count = 0;
+  //< resize-init-count
+    for (int i = 0; i < table->capacity; i++) {
+      Entry* entry = &table->entries[i];
+      if (entry->key == NULL) continue;
+  
+      Entry* dest = find_entry(entries, capacity, entry->key);
+      dest->key = entry->key;
+      dest->value = entry->value;
+  //> resize-increment-count
+      table->count++;
+  //< resize-increment-count
+    }
+
+    free(table->entries);
+    table->entries = entries;
+    table->capacity = capacity;
+}
+
+bool hashtable_set(Hashtable* table, ObjString* key, Value value) {
+    if (table->count + 1 > table->capacity * HASHTABLE_MAX_LOAD_TO_GROW) {
+        int capacity = GROW_CAPACITY(table->capacity);
+        adjust_capacity(table, capacity);
+      }
     
-    Entry* tombstone = NULL;
-
-    for (;;) {
-        Entry* entry = &entries[index];
-
-            if (entry->key == NULL) {
-              if (IS_NULL(entry->value)) {
-                return tombstone != NULL ? tombstone : entry;
-              } else {
-                if (tombstone == NULL) tombstone = entry;
-              }
-            } else if (entry->key == key) {
-              return entry;
-            }
-
-        index = (index + 1) & (capacity - 1);
-    }
-}
-
-void adjust_capacity(Hashtable* t, int newCapacity) {
-    // free mem
-    // recreate elems
-
-    // create new row entries as nulls
-    Entry* entries = ALLOCATE(Entry, newCapacity);
-    for (int i = 0; i < newCapacity; i++) {
-        entries[i].key = NULL;
-        entries[i].value = NULL_VAL;
-    }
-
-    t->count=0;
-
-    if (t->entries == NULL) {
-        t->entries = entries;
-        t->count = 0;
-        t->capacity = newCapacity;
-        return;
-    }
-
-    // put values to new entries from old table
-    for (int i = 0; i < newCapacity; i++) {
-        Entry* e = &t->entries[i];
-        if (e->key == NULL) continue;
-        // re-set value
-        Entry* dest = find_entry(entries, newCapacity, e->key);
-        dest->key = e->key;
-        dest->value = e->value;
-        t->count++;
-    }
-
-    if (t->entries != NULL) {
-        free(t->entries);
-    }
-    t->capacity = newCapacity;
-    t->entries = entries;
-}
-
-bool hashtable_set(Hashtable* t, ObjString* key, Value value) {
-    if (t->count + 1 > t->capacity * HASHTABLE_MAX_LOAD_TO_GROW) {
-        int capacity = GROW_CAPACITY(t->capacity);
-        adjust_capacity(t, capacity);
-    }
-
-    Entry* entry = find_entry(t->entries, t->capacity, key);
-    bool is_new = entry->key == NULL;
-    if (is_new && IS_NULL(entry->value)) t->count++;
-
-    entry->key = key;
-    entry->value = value;
-    return is_new;
+    //< table-set-grow
+      Entry* entry = find_entry(table->entries, table->capacity, key);
+      bool isNewKey = entry->key == NULL;
+    /* Hash Tables table-set < Hash Tables set-increment-count
+      if (isNewKey) table->count++;
+    */
+    //> set-increment-count
+      if (isNewKey && IS_NULL(entry->value)) table->count++;
+    //< set-increment-count
+    
+      entry->key = key;
+      entry->value = value;
+      return isNewKey;
 };
 
 void hashtable_copy(Hashtable* from, Hashtable* to) {
@@ -97,13 +98,13 @@ void hashtable_copy(Hashtable* from, Hashtable* to) {
     }
 };
 
-bool hashtable_get(Hashtable* t, ObjString* key, Value* value) {
-    if (t->count <= 0) return false;
+bool hashtable_get(Hashtable* table, ObjString* key, Value* value) {
+    if (table->count == 0) return false;
 
-    Entry* find = find_entry(t->entries, t->capacity, key);
-    if (find->key == NULL) return false;
-    
-    *value = find->value;
+    Entry* entry = find_entry(table->entries, table->capacity, key);
+    if (entry->key == NULL) return false;
+  
+    *value = entry->value;
     return true;
 };
 

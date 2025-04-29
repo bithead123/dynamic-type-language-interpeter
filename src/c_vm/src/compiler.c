@@ -33,6 +33,7 @@ typedef struct  {
 
 Parser parser;
 Chunk* compiling_chunk;
+Hashtable string_constants;
 
 void error_at(Token* token, const char* msg) {
     fprintf(stderr, "[line %d] Error", token->line);
@@ -137,7 +138,16 @@ void comp_string(bool canAssign) {
 };
 
 uint8_t make_id_constant(Token* name) {
-    return make_constant(OBJ_VAL(copy_string(name->start, name->length)));
+    
+    ObjString* str = copy_string(name->start, name->length);
+    Value index;
+    if (hashtable_get(&string_constants, str, &index)) {
+        return (uint8_t)AS_NUMBER(index);
+    }
+   
+    uint8_t const_index = make_constant(OBJ_VAL(str));
+    hashtable_set(&string_constants, str, NUMBER_VAL((double)const_index));
+    return const_index;
 };
 
 uint8_t parse_variable(const char* errorMsg) {
@@ -405,6 +415,8 @@ bool compile(const char* source, Chunk* chunk) {
     compiling_chunk = chunk;
     parser.had_error = false;
     parser.panic_mode = false;
+    
+    hashtable_init(&string_constants);
 
     advance();
     
@@ -412,11 +424,10 @@ bool compile(const char* source, Chunk* chunk) {
         declaration();
     }
 
-    //expression();
-    //consume(TOKEN_EOF, "Expect end of expression.");
-
     COMPILER_DEBUG_LOG("compile ok\n");
     end_compiler();
+
+    destroy_hashtable(&string_constants);
 
     return !parser.had_error;
 };

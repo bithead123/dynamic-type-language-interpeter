@@ -155,34 +155,33 @@ INTERPRET_RESULT run() {
             break;
 
         case OP_DEFINE_GLOBAL:
-            printf(":OP_DEFINE_GLOBAL\n");
-            ObjString* varname = READ_STRING();
-            hashtable_set(&vm.globals, varname, vm_stack_pop());
+            //printf(":OP_DEFINE_GLOBAL\n");
+            ObjString* name = READ_STRING();
+            hashtable_set(&vm.globals, name, stack_peek(0));
+            vm_stack_pop();
             break;
 
         case OP_SET_GLOBAL:
-            ObjString* set_glob_name = READ_STRING();
-            if (hashtable_set(&vm.globals, set_glob_name, stack_peek(0))) {
-                hashtable_delete(&vm.globals, set_glob_name);
-                runtime_error("Undefinded used variable name '%s'", set_glob_name->chars);
+            ObjString* glob_name = READ_STRING();
+            if (hashtable_set(&vm.globals, glob_name, stack_peek(0))) {
+                hashtable_delete(&vm.globals, glob_name); // [delete]
+                runtime_error("Undefined variable '%s'.", glob_name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
 
         case OP_GET_GLOBAL:
-            printf(":OP_GET_GLOBAL\n");
-            ObjString* get_name = READ_STRING();
-            Value var_value;
-            if (!hashtable_get(&vm.globals, get_name, &var_value)) {
-                runtime_error("Undefinded variable name '%s'", get_name->chars);
+            ObjString* get_glob_name = READ_STRING();
+            Value value;
+            if (!hashtable_get(&vm.globals, get_glob_name, &value)) {
+                runtime_error("Undefined variable '%s'.", get_glob_name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
-            vm_stack_push(var_value);
+            
+            vm_stack_push(value);
             break;
 
         case OP_POP: vm_stack_pop(); break;
-
-        
 
 
         default:
