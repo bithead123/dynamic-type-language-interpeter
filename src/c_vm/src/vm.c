@@ -205,6 +205,12 @@ INTERPRET_RESULT run() {
             vm.instr_ptr += offset_jump;
             break;
 
+        case OP_LOOP: 
+            uint16_t offset_loop = READ_SHORT();
+            // go back to loop condition
+            vm.instr_ptr -= offset_loop;
+            break;
+
         default:
             break;
         }

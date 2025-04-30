@@ -96,6 +96,7 @@ int disasm_chunk_code(Chunk* t, int offset) {
     case OP_SET_LOCAL: byte_instruction("OP_SET_LOCAL", t, offset); break;
     case OP_GET_LOCAL: byte_instruction("OP_GET_LOCAL", t, offset); break;
 
+    case OP_LOOP: disasm_jump_instr("OP_LOOP", -1, t, offset); return 3;
     case OP_JUMP: disasm_jump_instr("OP_JUMP", 1, t, offset); return 3;
     case OP_JUMP_IF_FALSE: disasm_jump_instr("OP_JUMP_IF_FALSE", 1, t, offset); return 3;
 

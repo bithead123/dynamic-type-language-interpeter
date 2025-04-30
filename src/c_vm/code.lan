@@ -1,6 +1,6 @@
-var a = 14;
-if (true or false or false or false or false) {
-    print "OK STMT";
-} else {
-    print "ELSE";
+
+var foo = 5;
+while(foo < 0) {
+    print foo;
+    foo = foo - 1;
 }

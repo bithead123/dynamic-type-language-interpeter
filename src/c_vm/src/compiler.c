@@ -237,6 +237,15 @@ void patch_jump(int offset) {
     current_chunk()->code[offset + 1] = jump & 0xff; // set first byte
 };
 
+void emit_loop(int loopStart) {
+    emit_byte(OP_LOOP);
+    int offset = current_chunk()->count - loopStart + 2;
+    if (offset > UINT16_MAX) error("While Loop body too large");
+
+    emit_byte((offset >> 8) & 0xff);
+    emit_byte(offset & 0xff);
+};
+
 
 void unary(bool canAssign);
 void binary();
@@ -449,12 +458,35 @@ void if_statement() {
     }
 };
 
+void while_statement() {
+    // while () {}
+    int loop_start = current_chunk()->count;
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' in while.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' in while.");
+
+    int exit_jump = emit_jump(OP_JUMP_IF_FALSE);
+    emit_byte(OP_POP);
+    consume(TOKEN_LEFT_BRACE, "Expect '{' to begin While body");
+    
+    block();
+
+    emit_loop(loop_start);
+
+    patch_jump(exit_jump);
+    emit_byte(OP_POP);
+}
+
 void statement() {
     if (match_token(TOKEN_PRINT)) {
         print_statement();
     } 
     else if (match_token(TOKEN_IF)) {
         if_statement();
+    }
+    else if (match_token(TOKEN_WHILE)) {
+        while_statement();
     }
     else if (match_token(TOKEN_LEFT_BRACE)) {
         scope_begin();
