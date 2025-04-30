@@ -1,6 +1,2 @@
 
-var foo = 5;
-while(foo < 0) {
-    print foo;
-    foo = foo - 1;
-}
+for(var a = 5; a > 0;) a = a -1;

@@ -458,6 +458,8 @@ void if_statement() {
     }
 };
 
+// ------------------ LOOPS
+
 void while_statement() {
     // while () {}
     int loop_start = current_chunk()->count;
@@ -476,7 +478,64 @@ void while_statement() {
 
     patch_jump(exit_jump);
     emit_byte(OP_POP);
-}
+};
+
+void for_statement() {
+    // for (init; cond; op) {}
+    scope_begin();
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' to begin For loop");
+    // <init> section
+    if (match_token(TOKEN_SEMICOLON)) {
+        // no initializer
+    }
+    else if (match_token(TOKEN_VAR)) {
+        var_decl();
+    }
+    else {
+        expression_statement();
+    }
+
+    int loop_start = current_chunk()->count;
+
+    // <condition> section
+    int exit_jump = -1;
+    if (!match_token(TOKEN_SEMICOLON)) {
+        expression();
+        consume(TOKEN_SEMICOLON, "Expect ';' in <condition> For loop");
+
+        // jump if the condition is false
+        exit_jump = emit_jump(OP_JUMP_IF_FALSE);
+        emit_byte(OP_POP);
+    } 
+
+    // <increment> section
+    if (!match_token(TOKEN_RIGHT_PAREN)) {
+        int body_jump = emit_jump(OP_JUMP);
+        
+        int inc_start = current_chunk()->count;
+        expression();
+        emit_byte(OP_POP);
+        consume(TOKEN_RIGHT_PAREN, "Expect ')' after increment section in For loop");
+
+        emit_loop(loop_start);
+        loop_start = inc_start;
+
+        patch_jump(body_jump);
+    }
+
+    // body
+    statement();
+
+    emit_loop(loop_start);
+
+    if (exit_jump != -1) {
+        patch_jump(exit_jump);
+        emit_byte(OP_POP);
+    }
+
+    scope_end();
+};
 
 void statement() {
     if (match_token(TOKEN_PRINT)) {
@@ -487,6 +546,9 @@ void statement() {
     }
     else if (match_token(TOKEN_WHILE)) {
         while_statement();
+    }
+    else if (match_token(TOKEN_FOR)) {
+        for_statement();
     }
     else if (match_token(TOKEN_LEFT_BRACE)) {
         scope_begin();
@@ -643,7 +705,9 @@ void or_(bool canAssign) {
 
     parse_precedence(PREC_OR);
     patch_jump(end_jump);
-}
+};
+
+
 
 bool compile(const char* source, Chunk* chunk) {
     scanner_init(source);
