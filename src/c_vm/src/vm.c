@@ -196,9 +196,13 @@ INTERPRET_RESULT run() {
             break;
 
         case OP_JUMP_IF_FALSE:
-            // get 2byte offset
-            uint16_t offset = READ_SHORT();
-            if (bool_is_falsey(stack_peek(0))) vm.instr_ptr += offset;
+            uint16_t offset_if_false = READ_SHORT();
+            if (bool_is_falsey(stack_peek(0))) vm.instr_ptr += offset_if_false;
+            break;
+
+        case OP_JUMP:
+            uint8_t offset_jump = READ_SHORT();
+            vm.instr_ptr += offset_jump;
             break;
 
         default:

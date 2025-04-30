@@ -427,9 +427,22 @@ void if_statement() {
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expect ')' in if.");
 
+    // parse it as a block.
+    consume(TOKEN_LEFT_BRACE, "Expect '{' after expr in If");
+
     int them_jump = emit_jump(OP_JUMP_IF_FALSE);
-    statement();
+    
+    block();
+
+    // если мы здесь, скипаем else ветку джампом без условия
+    int else_jump = emit_jump(OP_JUMP);
     patch_jump(them_jump);
+
+    if (match_token(TOKEN_ELSE)) {
+        consume(TOKEN_LEFT_BRACE, "Expect '{' after expr in Else");
+        block();
+        patch_jump(else_jump);
+    }
 };
 
 void statement() {
