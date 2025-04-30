@@ -59,3 +59,8 @@ infix order.
 one byte instructions to compilation.
 compile преобразование токенов в инструкции и заклад в чанк.
 interpret исполнение на ВМ кода.
+
+vars based on hashtable<langType>
+
+goals:
+Pratt parsing alg with precedences + mod assigment;

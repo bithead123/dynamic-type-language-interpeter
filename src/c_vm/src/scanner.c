@@ -142,6 +142,7 @@ TOKEN_TYPE get_identifier_type() {
     case 's': return check_keyword(1, 4, "uper", TOKEN_SUPER);
     case 'v': return check_keyword(1, 2, "ar", TOKEN_VAR);
     case 'w': return check_keyword(1, 4, "hile", TOKEN_WHILE);
+    case 'l': return check_keyword(1, 2, "et", TOKEN_LET);
     case 'f':
         if (scanner.current - scanner.start > 1) { // have next
             switch (scanner.start[1])

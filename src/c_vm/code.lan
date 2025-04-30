@@ -1,6 +1,2 @@
-{
-    var foo = 10;
-    {
-        print foo;
-    }
-}
+if (15 == 15) print "ok";
+print "then";

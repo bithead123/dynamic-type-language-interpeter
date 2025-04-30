@@ -67,6 +67,9 @@ ObjString* strings_concat() {
 
 INTERPRET_RESULT run() {
     
+    #define READ_SHORT() \
+        (vm.instr_ptr += 2, (uint16_t)((vm.instr_ptr[-2] << 8) | vm.instr_ptr[-1]))
+
     #define READ_BYTE() (*vm.instr_ptr++)
     #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())
@@ -192,6 +195,12 @@ INTERPRET_RESULT run() {
             vm_stack_push(vm.stack[get_slot]);
             break;
 
+        case OP_JUMP_IF_FALSE:
+            // get 2byte offset
+            uint16_t offset = READ_SHORT();
+            if (bool_is_falsey(stack_peek(0))) vm.instr_ptr += offset;
+            break;
+
         default:
             break;
         }
@@ -200,6 +209,7 @@ INTERPRET_RESULT run() {
     #undef READ_STRING
     #undef READ_BYTE
     #undef READ_CONSTANT
+    #undef READ_SHORT
 }
 
 INTERPRET_RESULT vm_interpret_source(const char* source) {

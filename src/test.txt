@@ -1,3 +1,30 @@
-if (4 == 5) {
-    print "go";
-}
+declaration
+SCOPE_BEG
+declaration
+var_decl.expr()
+parse_precedence
+declaration
+SCOPE_BEG
+declaration
+parse_precedence
+TOKEN: a=3 b=3
+NAMED_VAR: foo arg=0
+shrink_local_variables
+SCOPE_END
+SCOPE_END
+compile ok
+
+declaration
+SCOPE_BEG
+declaration
+var_decl.expr()
+parse_precedence
+declaration
+SCOPE_BEG
+declaration
+parse_precedence
+TOKEN: a=3 b=3
+NAMED_VAR: foo arg=0
+SCOPE_END
+SCOPE_END
+compile ok

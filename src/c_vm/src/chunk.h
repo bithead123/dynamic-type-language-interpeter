@@ -34,6 +34,8 @@ typedef enum {
     // locals
     OP_SET_LOCAL,
     OP_GET_LOCAL,
+    // jumps
+    OP_JUMP_IF_FALSE,
 } OP_CODE;
 
 typedef struct {

@@ -214,36 +214,29 @@ uint8_t make_id_constant(Token* name) {
     return const_index;
 };
 
+// ----------------- JUMBS
+// put jump  instr to chunk code, reserve two bytes for jump OFFSET
+int emit_jump(uint8_t instruction) {
+    emit_byte(instruction);
+    // supports long jump
+    emit_byte(0xff);
+    emit_byte(0xff);
 
-void declare_variable() {
-    // skip global decls
-    if (current_comp->scope_depth == 0) return;
+    return current_chunk()->count - 2;
+};
 
-    Token* name = &parser.previous;
-
-    // check var in same scope
-    for (int i = current_comp->local_count -1; i >= 0; i--) {
-        Local* local = &current_comp->locals[i];
-        if (local->depth != -1 && local->depth < current_comp->scope_depth) {
-            break;
-        }
-
-        if (identifier_equal(name, &local->name)) {
-            error("Already a variable with this name in this scope.");
-        }
+// set jump current distance by offset 
+void patch_jump(int offset) {
+    // -2 for itself
+    int jump = current_chunk()->count - offset - 2;
+    if (jump > UINT16_MAX) {
+        error("Too much code to jump over.");
     }
 
-    add_local(*name);
+    current_chunk()->code[offset] = (jump >> 8) & 0xff; // set sec byte
+    current_chunk()->code[offset + 1] = jump & 0xff; // set first byte
 };
 
-uint8_t parse_variable(const char* errorMsg) {
-    consume(TOKEN_ID, errorMsg);
-
-    declare_variable();
-    if (current_comp->scope_depth > 0) return 0;
-
-    return make_id_constant(&parser.previous);
-};
 
 void unary(bool canAssign);
 void binary();
@@ -292,6 +285,7 @@ ParseRule rules[] = {
       [TOKEN_WHILE]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_ERROR]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_EOF]           = {NULL,        NULL,   PREC_NONE},
+
 };
 
 ParseRule* get_rule(TOKEN_TYPE type) {
@@ -425,10 +419,26 @@ void block() {
     consume(TOKEN_RIGHT_BRACE, "Expect ';' after block.");
 };
 
+
+
+void if_statement() {
+    // if (expression)
+    consume(TOKEN_LEFT_PAREN, "Expect '(' in if.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' in if.");
+
+    int them_jump = emit_jump(OP_JUMP_IF_FALSE);
+    statement();
+    patch_jump(them_jump);
+};
+
 void statement() {
     if (match_token(TOKEN_PRINT)) {
         print_statement();
     } 
+    else if (match_token(TOKEN_IF)) {
+        if_statement();
+    }
     else if (match_token(TOKEN_LEFT_BRACE)) {
         scope_begin();
         block();
@@ -461,6 +471,37 @@ void compiler_sync() {
 
         advance();
     }
+};
+
+// ----------- VAR
+void declare_variable() {
+    // skip global decls
+    if (current_comp->scope_depth == 0) return;
+
+    Token* name = &parser.previous;
+
+    // check var in same scope
+    for (int i = current_comp->local_count -1; i >= 0; i--) {
+        Local* local = &current_comp->locals[i];
+        if (local->depth != -1 && local->depth < current_comp->scope_depth) {
+            break;
+        }
+
+        if (identifier_equal(name, &local->name)) {
+            error("Already a variable with this name in this scope.");
+        }
+    }
+
+    add_local(*name);
+};
+
+uint8_t parse_variable(const char* errorMsg) {
+    consume(TOKEN_ID, errorMsg);
+
+    declare_variable();
+    if (current_comp->scope_depth > 0) return 0;
+
+    return make_id_constant(&parser.previous);
 };
 
 void named_variable(Token token, bool canAssign) {
