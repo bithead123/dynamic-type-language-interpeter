@@ -1,6 +1,6 @@
 var a = 14;
-if (true) {
-    print "IF-TRUE";
+if (false) {
+    print "OK STMT";
 } else {
     print "ELSE";
 }

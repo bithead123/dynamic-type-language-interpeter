@@ -431,12 +431,14 @@ void if_statement() {
     consume(TOKEN_LEFT_BRACE, "Expect '{' after expr in If");
 
     int them_jump = emit_jump(OP_JUMP_IF_FALSE);
+    emit_byte(OP_POP);
     
     block();
 
     // если мы здесь, скипаем else ветку джампом без условия
     int else_jump = emit_jump(OP_JUMP);
     patch_jump(them_jump);
+    emit_byte(OP_POP);
 
     if (match_token(TOKEN_ELSE)) {
         consume(TOKEN_LEFT_BRACE, "Expect '{' after expr in Else");
