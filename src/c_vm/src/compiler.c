@@ -243,6 +243,8 @@ void binary();
 void grouping(bool canAssign);
 void literal(bool canAssign);
 void variable(bool canAssign);
+void and_(bool canAssign);
+void or_(bool canAssign);
 
 ParseRule rules[] = {
       [TOKEN_LEFT_PAREN]    = {grouping,    NULL,   PREC_NONE},
@@ -267,7 +269,7 @@ ParseRule rules[] = {
       [TOKEN_ID]            = {variable,        NULL,   PREC_NONE},
       [TOKEN_STRING]        = {comp_string, NULL,   PREC_NONE},
       [TOKEN_NUMBER]        = {comp_number, NULL,   PREC_NONE},
-      [TOKEN_AND]           = {NULL,        NULL,   PREC_NONE},
+      [TOKEN_AND]           = {NULL,        and_,   PREC_AND},
       [TOKEN_CLASS]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_ELSE]          = {NULL,        NULL,   PREC_NONE},
       [TOKEN_FALSE]         = {literal,        NULL,   PREC_NONE},
@@ -275,7 +277,7 @@ ParseRule rules[] = {
       [TOKEN_FUN]           = {NULL,        NULL,   PREC_NONE},
       [TOKEN_IF]            = {NULL,        NULL,   PREC_NONE},
       [TOKEN_NULL]          = {literal,        NULL,   PREC_NONE},
-      [TOKEN_OR]            = {NULL,        NULL,    PREC_OR},
+      [TOKEN_OR]            = {NULL,        or_,    PREC_OR},
       [TOKEN_PRINT]         = {NULL,        NULL,   PREC_NONE},
       [TOKEN_RETURN]        = {NULL,        NULL,   PREC_NONE},
       [TOKEN_SUPER]         = {NULL,        NULL,   PREC_NONE},
@@ -587,6 +589,29 @@ void declaration() {
 
     if (parser.panic_mode) compiler_sync();
 };
+
+// ------------ LOGICAL
+void and_(bool canAssign) {
+    // skip rhs when left is false
+    int jump = emit_jump(OP_JUMP_IF_FALSE);
+    
+    emit_byte(OP_POP);
+    parse_precedence(PREC_AND);
+    
+    patch_jump(jump);
+};
+
+void or_(bool canAssign) {
+    int else_jump = emit_jump(OP_JUMP_IF_FALSE);
+    // if we are here, lhs is True, no need to check rhs. jump over it.
+    int end_jump = emit_jump(OP_JUMP);
+
+    patch_jump(else_jump);
+    emit_byte(OP_POP);
+
+    parse_precedence(PREC_OR);
+    patch_jump(end_jump);
+}
 
 bool compile(const char* source, Chunk* chunk) {
     scanner_init(source);

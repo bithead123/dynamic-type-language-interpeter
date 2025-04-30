@@ -1,5 +1,5 @@
 var a = 14;
-if (false) {
+if (true or false or false or false or false) {
     print "OK STMT";
 } else {
     print "ELSE";

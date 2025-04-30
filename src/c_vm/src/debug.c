@@ -96,6 +96,9 @@ int disasm_chunk_code(Chunk* t, int offset) {
     case OP_SET_LOCAL: byte_instruction("OP_SET_LOCAL", t, offset); break;
     case OP_GET_LOCAL: byte_instruction("OP_GET_LOCAL", t, offset); break;
 
+    case OP_JUMP: disasm_jump_instr("OP_JUMP", 1, t, offset); return 3;
+    case OP_JUMP_IF_FALSE: disasm_jump_instr("OP_JUMP_IF_FALSE", 1, t, offset); return 3;
+
     default:
         printf("Unknown opcode %d\n", instr);
         break;
@@ -110,6 +113,12 @@ void disasm_constant_instr(const char* name, Chunk* t, int offset) {
     printf("%-16s %4d '", name, constant_index);
     print_value(t->constants.values[constant_index]);
     printf("'\n");
+};
+
+void disasm_jump_instr(const char* name, int sign, Chunk* chunk, int offset) {
+    uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
+    jump |= chunk->code[offset + 2];
+    printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign*jump);
 };
 
 void print_object(Value v) {
