@@ -65,7 +65,7 @@ vars based on hashtable<langType>
 goals:
 Pratt parsing alg with precedences + mod assigment;
 control flow: ip jumps.
-
+functions/call stack
 
 samples:
 [jumps]

@@ -26,6 +26,12 @@ void freeObj(Obj* t) {
         FREE(ObjString, t);
         break;
     
+    case OBJ_FUNCTION:
+        ObjFunction* func = (ObjFunction*)t;
+        chunk_destroy(&func->chunk);
+        FREE(ObjFunction, func);
+        break;
+        
     default:
         break;
     }
@@ -33,6 +39,16 @@ void freeObj(Obj* t) {
 
 #define ALLOCATE_OBJ(type, objType)  \
     allocate_obj(sizeof(type), objType)
+
+
+ObjFunction* new_function() {
+    ObjFunction* f = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
+    f->arity = 0;
+    f->name = NULL;
+    chunk_init(&f->chunk, 4);
+    return f;
+};
+
 
 ObjString* allocate_string(char* chars, int length, uint32_t hash) {
     ObjString* s = ALLOCATE_OBJ(ObjString, OBJ_STRING);

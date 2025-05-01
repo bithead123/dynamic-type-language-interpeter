@@ -100,6 +100,8 @@ int disasm_chunk_code(Chunk* t, int offset) {
     case OP_JUMP: disasm_jump_instr("OP_JUMP", 1, t, offset); return 3;
     case OP_JUMP_IF_FALSE: disasm_jump_instr("OP_JUMP_IF_FALSE", 1, t, offset); return 3;
 
+    case OP_CALL: byte_instruction("OP_CALL", t, offset); break;
+
     default:
         printf("Unknown opcode %d\n", instr);
         break;
@@ -122,13 +124,24 @@ void disasm_jump_instr(const char* name, int sign, Chunk* chunk, int offset) {
     printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign*jump);
 };
 
+void print_function(ObjFunction* func) {
+    if (func->name != NULL) {
+        printf("<fn %s>", func->name->chars);
+    }
+    else printf("<script>");
+};
+
 void print_object(Value v) {
     switch (OBJ_TYPE(v))
     {
     case OBJ_STRING:
         printf("\"%s\"", AS_CSTRING(v));
         break;
-    
+
+    case OBJ_FUNCTION:
+        print_function(AS_FUNCTION(v));
+        break;
+
     default:
         return;
     }

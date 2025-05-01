@@ -3,15 +3,28 @@
 #include "object.h"
 #include "string.h"
 
+#define DEBUG_PRINT_CODE
+
 #define UINT8_COUNT (UINT8_MAX + 1)
 #define SWITCH_MAX_CASES 64
+#define FUNCTION_MAX_PARAMS 255
 
 typedef struct {
     int depth;
     Token name;
 } Local;
 
+typedef enum {
+    FTYPE_FUNCTION,
+    FTYPE_SCRIPT,
+} FunctionType;
+
 typedef struct {
+    struct Compiler* enclosing;
+    
+    ObjFunction* function;
+    FunctionType function_type;
+
     int local_count;
     int scope_depth;
     Local locals[UINT8_COUNT];
@@ -152,7 +165,7 @@ void add_local(Token name) {
 // ------------ CHUNK TOOLS
 
 Chunk* current_chunk() {
-    return compiling_chunk;
+    return &current_comp->function->chunk;
 };
 
 uint8_t make_constant(Value reprValue) {
@@ -162,8 +175,6 @@ uint8_t make_constant(Value reprValue) {
         error("too many constants in one chunk.");
         return 0;
     }
-
-    Value vg = compiling_chunk->constants.values[const_index];
 
     return (uint8_t)const_index;
 };
@@ -188,8 +199,23 @@ void emit_constant(Value value) {
     emit_bytes(OP_CONST, make_constant(value));
 }
 
-void end_compiler() {
+ObjFunction* end_compiler() {
     emit_op_return();
+
+    ObjFunction* function = current_comp->function;
+
+    #ifdef DEBUG_PRINT_CODE
+    if (!parser.had_error) {
+        disasm_chunk(current_chunk(), function->name != NULL ?
+            function->name->chars : "<script>");
+    }
+    #endif
+
+    // unlink function compiler
+    // get back to previous function call compiler
+    current_comp = current_comp->enclosing; 
+
+    return function;
 };
 
 // -------------------- PARSING
@@ -258,9 +284,10 @@ void literal(bool canAssign);
 void variable(bool canAssign);
 void and_(bool canAssign);
 void or_(bool canAssign);
+void call(bool canAssign);
 
 ParseRule rules[] = {
-      [TOKEN_LEFT_PAREN]    = {grouping,    NULL,   PREC_NONE},
+      [TOKEN_LEFT_PAREN]    = {grouping,    call,   PREC_CALL},
       [TOKEN_RIGHT_PAREN]   = {NULL,        NULL,   PREC_NONE},
       [TOKEN_LEFT_BRACE]    = {NULL,        NULL,   PREC_NONE},
       [TOKEN_RIGHT_BRACE]   = {NULL,        NULL,   PREC_NONE},
@@ -751,10 +778,18 @@ void variable(bool canAssign) {
     named_variable(parser.previous, canAssign);
 }
 
+void markInitialized() {
+    //> Calls and Functions check-depth
+    if (current_comp->scope_depth == 0) return;
+    //< Calls and Functions check-depth
+    current_comp->locals[current_comp->local_count - 1].depth = current_comp->scope_depth;
+}
+
 void define_variable(uint8_t global) {
 
     // pass code for local vars
     if (current_comp->scope_depth > 0) {
+        markInitialized();
         return;
     }
 
@@ -777,6 +812,44 @@ void var_decl() {
     define_variable(global);
 };
 
+// ------------ FUNCTION
+void function_impl(FunctionType type) {
+    Compiler compiler;
+    compiler_init(&compiler, type);
+    
+    scope_begin();
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+
+    // compile params
+    if (!check(TOKEN_RIGHT_PAREN)) {
+        do {
+            current_comp->function->arity++;
+            if (current_comp->function->arity > FUNCTION_MAX_PARAMS) {
+                error_at_current("Can't have more than 255 params in function.");
+            }
+
+            uint8_t constant = parse_variable("Expect a parameter name.");
+            define_variable(constant); // define variable in CURRENT function
+        } while(match_token(TOKEN_COMMA));
+    }
+
+
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function name.");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' to begin function body.");
+    
+    block();
+
+    ObjFunction* function = end_compiler();
+    emit_bytes(OP_CONST, make_constant(OBJ_VAL(function)));
+}
+
+void function_decl() {
+    uint8_t global=  parse_variable("Expect function name.");
+    markInitialized();
+    function_impl(FTYPE_FUNCTION);
+    define_variable(global);
+};
+
 void declaration() {
 
     COMPILER_DEBUG_LOG("declaration\n");
@@ -784,11 +857,38 @@ void declaration() {
     if (match_token(TOKEN_VAR)) {
         var_decl();
     }
+    else if (match_token(TOKEN_FUN)) {
+        function_decl();
+    }
     else {
         statement();
     }
 
     if (parser.panic_mode) compiler_sync();
+};
+
+int argument_list() {
+    int arg_count = 0;
+    if (!check(TOKEN_RIGHT_PAREN)) {
+        do {
+            // args will be on function stack
+            expression();
+            arg_count++;
+
+            if (arg_count > FUNCTION_MAX_PARAMS) {
+                error("Cant have more than 255 args.");
+            }
+
+        } while(match_token(TOKEN_COMMA));
+    }
+
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after args in function.");
+    return arg_count;
+};
+
+void call(bool canAssign) {
+    uint8_t arg_count = argument_list();
+    emit_bytes(OP_CALL, arg_count);
 };
 
 // ------------ LOGICAL
@@ -816,13 +916,16 @@ void or_(bool canAssign) {
 
 
 
-bool compile(const char* source, Chunk* chunk) {
+
+
+ObjFunction* compile(const char* source) {
     scanner_init(source);
 
     Compiler comp;
-    compiler_init(&comp);
+    compiler_init(&comp, FTYPE_SCRIPT);
 
-    compiling_chunk = chunk;
+    // FIX
+    //compiling_chunk = chunk;
     parser.had_error = false;
     parser.panic_mode = false;
     
@@ -834,12 +937,10 @@ bool compile(const char* source, Chunk* chunk) {
         declaration();
     }
 
-    COMPILER_DEBUG_LOG("compile ok\n");
-    end_compiler();
+    //destroy_hashtable(&string_constants);
 
-    destroy_hashtable(&string_constants);
-
-    return !parser.had_error;
+    ObjFunction* function = end_compiler();
+    return parser.had_error ? NULL : function;
 };
 
 void dump_pass() {
@@ -859,10 +960,28 @@ void dump_pass() {
     }
 }
 
-void compiler_init(Compiler* comp) {
+void compiler_init(Compiler* comp, FunctionType type) {
+
+    // link previous function compiler.
+    comp->enclosing = current_comp;
+
     COMPILER_DEBUG_LOG("compiler_init\n");
     comp->local_count = 0;
     comp->scope_depth = 0;
+    comp->function = new_function();
+    comp->function_type = type;
     current_comp = comp;
+
+    if (type != FTYPE_SCRIPT) {
+        // copy function name
+        current_comp->function->name = copy_string(parser.previous.start, 
+            parser.previous.length);
+    }
+
+    // INIT ONE LOCAL
+    Local* local = &current_comp->locals[current_comp->local_count++];
+    local->depth = 0;
+    local->name.start = "";
+    local->name.length = 0;
 };
 

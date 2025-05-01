@@ -40,6 +40,8 @@ typedef enum {
     OP_LOOP,
     // duplicate
     OP_DUP,
+    // functions
+    OP_CALL,
 } OP_CODE;
 
 typedef struct {

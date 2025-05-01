@@ -4,9 +4,11 @@
 #include "values.h"
 #include "common.h"
 #include "memory.h"
+#include "chunk.h"
 
 typedef enum ObjType {
     OBJ_STRING,
+    OBJ_FUNCTION
 } ObjType;
 
 struct Obj {
@@ -20,6 +22,15 @@ struct ObjString {
     char* chars;
     uint32_t hash;
 };
+
+typedef struct {
+    Obj obj;
+    int arity;
+    Chunk chunk;
+    ObjString* name;
+} ObjFunction; 
+
+ObjFunction* new_function();
 
 ObjString* copy_string(const char* chars, int length);
 ObjString* new_string(const char* chars, int length);
