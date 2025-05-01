@@ -211,6 +211,8 @@ INTERPRET_RESULT run() {
             vm.instr_ptr -= offset_loop;
             break;
 
+        case OP_DUP: vm_stack_push(stack_peek(0)); break;
+
         default:
             break;
         }

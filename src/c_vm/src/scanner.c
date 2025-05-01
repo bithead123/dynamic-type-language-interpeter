@@ -132,16 +132,38 @@ TOKEN_TYPE get_identifier_type() {
     switch (scanner.start[0])
     {
     case 'a': return check_keyword(1, 2, "nd", TOKEN_AND);
-    case 'c': return check_keyword(1, 4, "lass", TOKEN_CLASS);
+    case 'c': 
+        if (scanner.current - scanner.start > 1) { // have next
+            switch (scanner.start[1])
+            {
+            case 'l': return check_keyword(2, 3, "ass", TOKEN_CLASS);
+            case 'a': return check_keyword(2, 2, "se", TOKEN_CASE);
+            default:
+                break;
+            }
+        }    
+        break;
     case 'e': return check_keyword(1, 3, "lse", TOKEN_ELSE);
     case 'i': return check_keyword(1, 1, "f", TOKEN_IF);
     case 'n': return check_keyword(1, 3, "ull", TOKEN_NULL);
     case 'o': return check_keyword(1, 1, "r", TOKEN_OR);
     case 'p': return check_keyword(1, 4, "rint", TOKEN_PRINT);
     case 'r': return check_keyword(1, 5, "eturn", TOKEN_RETURN);
-    case 's': return check_keyword(1, 4, "uper", TOKEN_SUPER);
+    case 's': 
+        if (scanner.current - scanner.start > 1) { // have next
+            switch (scanner.start[1])
+            {
+            case 'u': return check_keyword(2, 3, "per", TOKEN_SUPER);
+            case 'w': return check_keyword(2, 4, "itch", TOKEN_SWITCH);
+            default:
+                break;
+            }
+        }    
+        break;
     case 'v': return check_keyword(1, 2, "ar", TOKEN_VAR);
     case 'w': return check_keyword(1, 4, "hile", TOKEN_WHILE);
+    case 'd': return check_keyword(1, 6, "efault", TOKEN_DEFAULT);
+    case 'b': return check_keyword(1, 4, "reak", TOKEN_BREAK);
     case 'l': return check_keyword(1, 2, "et", TOKEN_LET);
     case 'f':
         if (scanner.current - scanner.start > 1) { // have next
@@ -202,6 +224,7 @@ Token scan_token() {
     case '.': return make_token(TOKEN_DOT);
     case '-': return make_token(TOKEN_MINUS);
     case '+': return make_token(TOKEN_PLUS);
+    case ':': return make_token(TOKEN_COLON);
     case '*': return make_token(TOKEN_STAR);
     case '/': 
         if (peek_next() == '/') {

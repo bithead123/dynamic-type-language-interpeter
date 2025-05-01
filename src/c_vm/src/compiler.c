@@ -4,6 +4,7 @@
 #include "string.h"
 
 #define UINT8_COUNT (UINT8_MAX + 1)
+#define SWITCH_MAX_CASES 64
 
 typedef struct {
     int depth;
@@ -537,6 +538,66 @@ void for_statement() {
     scope_end();
 };
 
+void switch_() {
+    // switch (exopr)
+    consume(TOKEN_LEFT_PAREN, "Expect '(' to begin Switch expr");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' to end Switch expr");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' to begin Switch body");
+
+    int prev_case_jump = -1;
+    int cases[SWITCH_MAX_CASES];
+    int index = 0;
+
+    // parse case
+    while(match_token(TOKEN_CASE) || match_token(TOKEN_DEFAULT) && index < SWITCH_MAX_CASES) {
+        // patch previous case.
+        if (prev_case_jump > 0) {
+            patch_jump(prev_case_jump);
+            emit_byte(OP_POP);
+        }
+
+        if (parser.previous.type == TOKEN_DEFAULT) {
+            consume(TOKEN_COLON, "Expect ':' to begin Switch-Case body");
+    
+            // case body.
+            statement();
+        }
+        else {
+            emit_byte(OP_DUP);
+
+            expression();
+    
+            // if false, go next.
+            emit_byte(OP_EQUAL);
+            prev_case_jump =  emit_jump(OP_JUMP_IF_FALSE);
+
+            emit_byte(OP_POP);
+            
+            consume(TOKEN_COLON, "Expect ':' to begin Switch-Case body");
+    
+            // case body.
+            statement();
+        }
+        
+        // go out of switch
+        cases[index++] = emit_jump(OP_JUMP);
+        //emit_byte(OP_POP);
+    }
+
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' to end Switch body");
+
+    // patch all outs.
+    for (int i = 0; i < index-1; i++) {
+        patch_jump(cases[i]);
+    }
+
+    // patch last case.
+    patch_jump(cases[index-1]);
+    emit_byte(OP_POP);
+    
+};
+
 void statement() {
     if (match_token(TOKEN_PRINT)) {
         print_statement();
@@ -546,6 +607,9 @@ void statement() {
     }
     else if (match_token(TOKEN_WHILE)) {
         while_statement();
+    }
+    else if (match_token(TOKEN_SWITCH)) {
+        switch_();
     }
     else if (match_token(TOKEN_FOR)) {
         for_statement();

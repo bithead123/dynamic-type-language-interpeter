@@ -1,2 +1,15 @@
 
-for(var a = 5; a > 0;) a = a -1;
+var foo = 54;
+switch(foo) {
+
+    case 54:
+        print "CASE-54";
+
+    case 5:
+        print "CASE-5";
+
+    default:
+        print "DEFAULT";
+}
+
+print "OUT CASE";
