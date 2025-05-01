@@ -31,7 +31,7 @@ void freeObj(Obj* t) {
         chunk_destroy(&func->chunk);
         FREE(ObjFunction, func);
         break;
-        
+
     default:
         break;
     }
@@ -45,7 +45,7 @@ ObjFunction* new_function() {
     ObjFunction* f = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     f->arity = 0;
     f->name = NULL;
-    chunk_init(&f->chunk, 4);
+    chunk_init(&f->chunk, 6);
     return f;
 };
 

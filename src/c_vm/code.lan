@@ -1,6 +1,7 @@
 
-fun ab() {
-    print "IN FUNC";
+fun bar() {
+    print "good";
 }
 
-ab();
+bar();
+print "after";

@@ -187,6 +187,7 @@ void emit_byte(uint8_t byte) {
 };
 
 void emit_op_return() {
+    emit_byte(OP_NULL);
     emit_byte(OP_RET);
 };
 
@@ -665,10 +666,30 @@ void continue_() {
     emit_loop(deepest_loop_offset);
 };  
 
+void return_statement() {
+    if (current_comp->function_type == FTYPE_SCRIPT) {
+        error("Can't return from top-level code.");
+    }
+
+    if (match_token(TOKEN_SEMICOLON)) {
+        emit_op_return();
+    }
+    else {
+        // return value
+        expression();
+
+        consume(TOKEN_SEMICOLON, "Expect ';' after return statement.");
+        emit_byte(OP_RET);
+    }
+};
+
 void statement() {
     if (match_token(TOKEN_PRINT)) {
         print_statement();
     } 
+    else if (match_token(TOKEN_RETURN)) {
+        return_statement();
+    }
     else if (match_token(TOKEN_IF)) {
         if_statement();
     }
