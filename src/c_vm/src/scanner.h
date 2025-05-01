@@ -28,6 +28,8 @@ typedef enum {
     TOKEN_CASE,
     TOKEN_BREAK,
     TOKEN_COLON,
+    // continue
+    TOKEN_CONTINUE,
 
     TOKEN_ERROR, TOKEN_EOF
 } TOKEN_TYPE;

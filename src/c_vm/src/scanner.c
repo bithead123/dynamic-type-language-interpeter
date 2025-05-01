@@ -138,6 +138,7 @@ TOKEN_TYPE get_identifier_type() {
             {
             case 'l': return check_keyword(2, 3, "ass", TOKEN_CLASS);
             case 'a': return check_keyword(2, 2, "se", TOKEN_CASE);
+            case 'o': return check_keyword(2, 6, "ntinue", TOKEN_CONTINUE);
             default:
                 break;
             }

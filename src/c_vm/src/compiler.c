@@ -51,6 +51,9 @@ Compiler* current_comp = NULL;
 Chunk* compiling_chunk;
 Hashtable string_constants;
 
+int deepest_loop_offset = -1;
+int deepest_loop_depth = -1;
+
 void error_at(Token* token, const char* msg) {
     fprintf(stderr, "[line %d] Error", token->line);
 
@@ -465,6 +468,12 @@ void while_statement() {
     // while () {}
     int loop_start = current_chunk()->count;
 
+    // supports continue
+    int old_loop_offset = deepest_loop_offset;
+    int old_loop_depth = deepest_loop_depth;
+    deepest_loop_offset = loop_start;
+    deepest_loop_depth = current_comp->scope_depth;
+
     consume(TOKEN_LEFT_PAREN, "Expect '(' in while.");
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expect ')' in while.");
@@ -479,6 +488,9 @@ void while_statement() {
 
     patch_jump(exit_jump);
     emit_byte(OP_POP);
+
+    deepest_loop_depth = old_loop_depth;
+    deepest_loop_offset = old_loop_offset;
 };
 
 void for_statement() {
@@ -498,6 +510,12 @@ void for_statement() {
     }
 
     int loop_start = current_chunk()->count;
+
+    // supports continue
+    int old_loop_offset = deepest_loop_offset;
+    int old_loop_depth = deepest_loop_depth;
+    deepest_loop_offset = loop_start;
+    deepest_loop_depth = current_comp->scope_depth;
 
     // <condition> section
     int exit_jump = -1;
@@ -522,6 +540,8 @@ void for_statement() {
         emit_loop(loop_start);
         loop_start = inc_start;
 
+        deepest_loop_offset = loop_start;
+
         patch_jump(body_jump);
     }
 
@@ -534,6 +554,9 @@ void for_statement() {
         patch_jump(exit_jump);
         emit_byte(OP_POP);
     }
+
+    deepest_loop_depth = old_loop_depth;
+    deepest_loop_offset = old_loop_offset;
 
     scope_end();
 };
@@ -594,9 +617,26 @@ void switch_() {
 
     // patch last case.
     patch_jump(cases[index-1]);
-    emit_byte(OP_POP);
-    
+    emit_byte(OP_POP);  
 };
+
+void continue_() {
+    
+    if (deepest_loop_offset == -1) {
+        error("Can't use 'continue' out loop.");
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after continue.");
+
+    // shrink locals in loop
+    for (int i = current_comp->local_count-1;
+         i >= 0 && current_comp->locals[i].depth > deepest_loop_depth;
+        i--) {
+        emit_byte(OP_POP);
+    }
+
+    emit_loop(deepest_loop_offset);
+};  
 
 void statement() {
     if (match_token(TOKEN_PRINT)) {
@@ -607,6 +647,9 @@ void statement() {
     }
     else if (match_token(TOKEN_WHILE)) {
         while_statement();
+    }
+    else if (match_token(TOKEN_CONTINUE)) {
+        continue_();
     }
     else if (match_token(TOKEN_SWITCH)) {
         switch_();
