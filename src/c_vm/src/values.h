@@ -28,6 +28,7 @@ typedef struct {
 #define IS_NULL(value) ((value).type == VALUE_NULL)
 #define IS_OBJ(value) ((value).type == VALUE_OBJ)
 #define IS_FUNCTION(value) is_obj_type(value, OBJ_FUNCTION)
+#define IS_NATIVE(value) is_obj_type(value, OBJ_NATIVE)
 
 #define BOOL_VAl(value) ((Value){VALUE_BOOL, {.boolean = value}}) 
 #define NUMBER_VAL(value) ((Value){VALUE_NUMBER, {.number = value}}) 
@@ -38,6 +39,8 @@ typedef struct {
 #define AS_NUMBER(value) ((value).as.number)
 #define AS_OBJ(value) ((value).as.obj)
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJ(value))
+#define AS_NATIVE(value) \
+    (((ObjNative*)AS_OBJ(value))->function)
 
 typedef struct {
     int count;

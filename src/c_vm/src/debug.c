@@ -142,6 +142,10 @@ void print_object(Value v) {
         print_function(AS_FUNCTION(v));
         break;
 
+    case OBJ_NATIVE:
+        printf("<native fn>");
+        break;
+
     default:
         return;
     }

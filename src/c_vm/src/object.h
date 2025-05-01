@@ -8,7 +8,8 @@
 
 typedef enum ObjType {
     OBJ_STRING,
-    OBJ_FUNCTION
+    OBJ_FUNCTION,
+    OBJ_NATIVE
 } ObjType;
 
 struct Obj {
@@ -30,7 +31,15 @@ typedef struct {
     ObjString* name;
 } ObjFunction; 
 
+typedef Value(*NativeFn)(int argCount, Value* args);
+
+typedef struct {
+    Obj obj;
+    NativeFn function;
+} ObjNative;
+
 ObjFunction* new_function();
+ObjNative* new_native(NativeFn function);
 
 ObjString* copy_string(const char* chars, int length);
 ObjString* new_string(const char* chars, int length);
@@ -38,6 +47,7 @@ bool is_obj_type(Value v, ObjType type);
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 #define IS_STRING(value) (is_obj_type(value, OBJ_STRING))
+
 
 #define AS_STRING(value) ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJ(value))->chars)

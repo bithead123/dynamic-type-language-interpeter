@@ -1,7 +1,17 @@
 
+var start = clock();
+
 fun bar() {
-    print "good";
+    var index = 1000;
+    while(index > 0) {
+        index = index - 1;
+        print index;
+    }
 }
 
 bar();
-print "after";
+
+print "END OF PROG";
+print clock() - start;
+
+

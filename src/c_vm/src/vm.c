@@ -2,6 +2,7 @@
 #include "compiler.h"
 #include "stdarg.h"
 #include "object.h"
+#include "builtin_natives/clock.h"
 
 VM vm;
 
@@ -28,6 +29,14 @@ void runtime_error(const char* format, ...) {
     }
 
     vm_reset_stack();
+};
+
+void define_native(const char* name, NativeFn function) {
+    vm_stack_push(OBJ_VAL(copy_string(name, (int)strlen(name))));
+    vm_stack_push(OBJ_VAL(new_native(function)));
+    hashtable_set(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+    vm_stack_pop();
+    vm_stack_pop();
 };
 
 // ------------ TOOLS
@@ -104,6 +113,15 @@ bool call_value(Value callee, int argCount) {
         case OBJ_FUNCTION:
             return vm_call_func(AS_FUNCTION(callee), argCount);
         
+        case OBJ_NATIVE:
+            NativeFn native = AS_NATIVE(callee);
+            
+            // we no need to work with frame. no bytecode by native. 
+            Value result = native(argCount, vm.stack_top - argCount);
+            vm.stack_top -= argCount + 1;
+            vm_stack_push(result);
+            return true;
+            
         default:
             break; // non collable type.
         }
@@ -111,7 +129,7 @@ bool call_value(Value callee, int argCount) {
 
     runtime_error("Can only call functions and classes.");
     return false;
-} ;
+};
 
 INTERPRET_RESULT run() {
     CallFrame* frame = &vm.frames[vm.frames_count-1];
@@ -351,12 +369,18 @@ Value vm_stack_pop() {
 
 // --------- VM
 
+void vm_add_natives() {
+    define_native("clock", clock_);
+};
+
 void vm_init() {
     vm_reset_stack();
     vm.objects = NULL;
     hashtable_init(&vm.strings);
     hashtable_init(&vm.globals);
-    //vm.strings = ALLOCATE(Hashtable, 1);
+
+    // add globals
+    vm_add_natives();
 };
 
 

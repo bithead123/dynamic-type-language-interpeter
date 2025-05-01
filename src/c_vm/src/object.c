@@ -32,6 +32,10 @@ void freeObj(Obj* t) {
         FREE(ObjFunction, func);
         break;
 
+    case OBJ_NATIVE:
+        FREE(ObjNative, t);
+        break;
+
     default:
         break;
     }
@@ -92,4 +96,10 @@ ObjString* copy_string(const char* chars, int length) {
     heapChars[length] = '\0';
 
     return allocate_string(heapChars, length, hash);
+};
+
+ObjNative* new_native(NativeFn function) {
+    ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
+    native->function = function;
+    return native;
 };
