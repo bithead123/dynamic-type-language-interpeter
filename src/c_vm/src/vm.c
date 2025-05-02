@@ -2,7 +2,9 @@
 #include "compiler.h"
 #include "stdarg.h"
 #include "object.h"
+
 #include "builtin_natives/clock.h"
+#include "builtin_natives/math.h"
 
 VM vm;
 
@@ -391,6 +393,8 @@ Value vm_stack_pop() {
 
 void vm_add_natives() {
     define_native("clock", _clock);
+    define_native("max", _max);
+    define_native("min", _min);
 };
 
 void vm_init() {
