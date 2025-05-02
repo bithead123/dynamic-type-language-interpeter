@@ -134,20 +134,24 @@ bool call_value(Value callee, int argCount) {
 INTERPRET_RESULT run() {
     CallFrame* frame = &vm.frames[vm.frames_count-1];
 
-    #define READ_SHORT() \
-        (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+    register uint8_t* ip = frame->ip;
 
-    #define READ_BYTE() (*frame->ip++)
+    #define READ_SHORT() \
+        (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
+
+    #define READ_BYTE() (*ip++)
     #define READ_CONSTANT() (frame->function->chunk.constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())
     #define BINARY_OP(valueType, operation) \
         do {\
             if (IS_STRING(stack_peek(0)) && IS_STRING(stack_peek(1))) { \
+                frame->ip = ip; \
                 vm_stack_push(OBJ_VAL(strings_concat())); \
                 break; \
             } \
             \
             if (!IS_NUMBER(stack_peek(0)) || !IS_NUMBER(stack_peek(1))) { \
+                frame->ip = ip; \
                 runtime_error("Operands must be numbers in BinaryOp."); \
                 return INTERPRET_RUNTIME_ERROR; \
             } \
@@ -163,7 +167,7 @@ INTERPRET_RESULT run() {
         #ifdef DEBUG_TRACE_EXECUTION
 
         // dump stack each instruction
-        printf("      ");
+        printf("       ");
         for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
             printf("[");
             print_value(*slot);
@@ -171,7 +175,7 @@ INTERPRET_RESULT run() {
         }
         printf("\n");
 
-        disassembleInstruction(&frame->function->chunk, (int)(frame->ip - frame->function->chunk.code));
+        disassembleInstruction(&frame->function->chunk, (int)(ip - frame->function->chunk.code));
         #endif
 
         uint8_t code; 
@@ -197,11 +201,13 @@ INTERPRET_RESULT run() {
 
             // set frame to previous.
             frame = &vm.frames[vm.frames_count - 1];
+            ip = frame->ip;
             break;
 
         case OP_NEGATE: 
             // vm_stack_push(-vm_stack_pop()); break;
             if (!IS_NUMBER(stack_peek(0))) {
+                frame->ip = ip;
                 runtime_error("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -252,6 +258,7 @@ INTERPRET_RESULT run() {
         case OP_SET_GLOBAL:
             ObjString* glob_name = READ_STRING();
             if (hashtable_set(&vm.globals, glob_name, stack_peek(0))) {
+                frame->ip = ip;
                 hashtable_delete(&vm.globals, glob_name); // [delete]
                 runtime_error("Undefined variable '%s'.", glob_name->chars);
                 return INTERPRET_RUNTIME_ERROR;
@@ -262,6 +269,7 @@ INTERPRET_RESULT run() {
             ObjString* get_glob_name = READ_STRING();
             Value value;
             if (!hashtable_get(&vm.globals, get_glob_name, &value)) {
+                frame->ip = ip;
                 runtime_error("Undefined variable '%s'.", get_glob_name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -283,18 +291,18 @@ INTERPRET_RESULT run() {
 
         case OP_JUMP_IF_FALSE:
             uint16_t offset_if_false = READ_SHORT();
-            if (bool_is_falsey(stack_peek(0))) frame->ip += offset_if_false;
+            if (bool_is_falsey(stack_peek(0))) ip += offset_if_false;
             break;
 
         case OP_JUMP:
             uint8_t offset_jump = READ_SHORT();
-            frame->ip += offset_jump;
+            ip += offset_jump;
             break;
 
         case OP_LOOP: 
             uint16_t offset_loop = READ_SHORT();
             // go back to loop condition
-            frame->ip -= offset_loop;
+            ip -= offset_loop;
             break;
 
         case OP_DUP: vm_stack_push(stack_peek(0)); break;
@@ -303,12 +311,15 @@ INTERPRET_RESULT run() {
             // stack now: ..., fn, args.., argCount, OP_CALL
             int arg_count = READ_BYTE();
             
+            frame->ip = ip;
+
             if (!call_value(stack_peek(arg_count), arg_count)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
 
             // update frame on new function.
             frame = &vm.frames[vm.frames_count - 1];
+            ip = frame->ip;
             break;
 
         default:
