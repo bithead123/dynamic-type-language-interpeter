@@ -1,17 +1,12 @@
 
-var start = clock();
+var a = 10;
 
-fun bar() {
-    var index = 1000;
-    while(index > 0) {
-        index = index - 1;
-        print index;
+fun fib(n) {
+    if (n < 2) {
+        return n;
+    } else {
+        return fib(n-1) + fib(n-2);
     }
 }
 
-bar();
-
-print "END OF PROG";
-print clock() - start;
-
-
+print fib(10);

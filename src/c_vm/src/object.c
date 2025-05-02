@@ -49,7 +49,7 @@ ObjFunction* new_function() {
     ObjFunction* f = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     f->arity = 0;
     f->name = NULL;
-    chunk_init(&f->chunk, 6);
+    chunk_init(&f->chunk, 24);
     return f;
 };
 

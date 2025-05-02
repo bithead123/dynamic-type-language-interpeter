@@ -207,10 +207,13 @@ ObjFunction* end_compiler() {
 
     #ifdef DEBUG_PRINT_CODE
     if (!parser.had_error) {
-        disasm_chunk(current_chunk(), function->name != NULL ?
+        disassembleChunk(current_chunk(), function->name != NULL ?
             function->name->chars : "<script>");
     }
     #endif
+
+    // clear constant cache
+    //destroy_hashtable(&string_constants);
 
     // unlink function compiler
     // get back to previous function call compiler
@@ -233,7 +236,8 @@ void comp_string(bool canAssign) {
 };
 
 uint8_t make_id_constant(Token* name) {
-    
+
+    /*
     ObjString* str = copy_string(name->start, name->length);
     Value index;
     if (hashtable_get(&string_constants, str, &index)) {
@@ -242,7 +246,12 @@ uint8_t make_id_constant(Token* name) {
    
     uint8_t const_index = make_constant(OBJ_VAL(str));
     hashtable_set(&string_constants, str, NUMBER_VAL((double)const_index));
+    
     return const_index;
+    */
+
+    return make_constant(OBJ_VAL(copy_string(name->start,
+        name->length)));
 };
 
 // ----------------- JUMBS
@@ -771,8 +780,8 @@ uint8_t parse_variable(const char* errorMsg) {
 };
 
 void named_variable(Token token, bool canAssign) {
-
     uint8_t getOp, setOp;
+
     int arg = resolve_local(current_comp, &token);
     if (arg != -1) {
         // its local var
@@ -950,7 +959,7 @@ ObjFunction* compile(const char* source) {
     parser.had_error = false;
     parser.panic_mode = false;
     
-    hashtable_init(&string_constants);
+    
 
     advance();
     
@@ -958,7 +967,7 @@ ObjFunction* compile(const char* source) {
         declaration();
     }
 
-    //destroy_hashtable(&string_constants);
+    
 
     ObjFunction* function = end_compiler();
     return parser.had_error ? NULL : function;
@@ -998,6 +1007,9 @@ void compiler_init(Compiler* comp, FunctionType type) {
         current_comp->function->name = copy_string(parser.previous.start, 
             parser.previous.length);
     }
+
+    // init constant cache
+    //hashtable_init(&string_constants);
 
     // INIT ONE LOCAL
     Local* local = &current_comp->locals[current_comp->local_count++];

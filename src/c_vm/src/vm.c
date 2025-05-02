@@ -171,7 +171,7 @@ INTERPRET_RESULT run() {
         }
         printf("\n");
 
-        disasm_chunk_code(&frame->function->chunk, (int)(frame->ip - frame->function->chunk.code));
+        disassembleInstruction(&frame->function->chunk, (int)(frame->ip - frame->function->chunk.code));
         #endif
 
         uint8_t code; 

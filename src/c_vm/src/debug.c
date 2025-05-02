@@ -1,128 +1,9 @@
+//> Chunks of Bytecode debug-c
+#include <stdio.h>
+
 #include "debug.h"
+//> Closures debug-include-object
 #include "object.h"
-
-int get_code_offset(uint8_t t) {
-    switch (t)
-    {
-    case OP_RET:
-        return 1;
-
-    case OP_NEGATE:
-        return 1;
-    
-    case OP_ADD:
-    case OP_SUB:
-    case OP_DIV:
-    case OP_MUL:
-        return 1;
-
-    case OP_CONST:
-        return 2;
-
-    case OP_TRUE:
-    case OP_FALSE:
-    case OP_NULL:
-        return 1;
-
-    case OP_NOT:
-        return 1;
-
-    default:
-        return 1;
-    }
-}  
-
-void disasm_chunk(Chunk* t, const char* name) {
-    printf("---- Chunk ('%s' at %p) ----\n", name, t);
-    for (int offset = 0; offset < t->count;) {
-        offset += disasm_chunk_code(t, offset);
-    }
-};
-
-int byte_instruction(const char* name, Chunk* chunk, int offset) {
-    uint8_t slot = chunk->code[offset+1];
-    printf("%-16s %4d\n", name, slot);
-    return offset + 2;
-};
-
-int disasm_chunk_code(Chunk* t, int offset) {
-    printf("%04d ", offset);
-    uint8_t instr = t->code[offset];
-    printf("%4d ", t->lines[offset]);
-    switch (instr)
-    {
-    case OP_RET:
-        printf("OP_RET\n");
-        break;
-
-    case OP_CONST:
-        disasm_constant_instr("OP_CONST", t, offset);
-        break;
-
-    case OP_ADD: disasm_constant_instr("OP_ADD", t, offset); break;
-    case OP_MUL: disasm_constant_instr("OP_MUL", t, offset); break;
-    case OP_DIV: disasm_constant_instr("OP_DIV", t, offset); break;
-    case OP_SUB: disasm_constant_instr("OP_SUB", t, offset); break;
-
-    case OP_NEGATE:
-        disasm_constant_instr("OP_NEGATE", t, offset);
-        break;
-    
-    case OP_NOT:
-        disasm_constant_instr("OP_NOT", t, offset);
-        break;
-
-    case OP_EQUAL:
-        disasm_constant_instr("OP_EQUAL", t, offset);
-        break;
-       
-    case OP_LESS:
-        disasm_constant_instr("OP_LESS", t, offset);
-        break;
-
-    case OP_GREATER:
-        disasm_constant_instr("OP_GREATER", t, offset);
-        break;
-
-    case OP_FALSE: disasm_constant_instr("OP_FALSE", t, offset); break;
-    case OP_TRUE: disasm_constant_instr("OP_TRUE", t, offset); break;
-
-    case OP_PRINT: disasm_constant_instr("OP_PRINT", t, offset); break;
-    case OP_POP: disasm_constant_instr("OP_POP", t, offset); break;
-    case OP_DEFINE_GLOBAL: disasm_constant_instr("OP_DEFINE_GLOBAL", t, offset); break;
-    case OP_GET_GLOBAL: disasm_constant_instr("OP_GET_GLOBAL", t, offset); break;
-    case OP_SET_GLOBAL: disasm_constant_instr("OP_SET_GLOBAL", t, offset); break;
-
-    case OP_SET_LOCAL: byte_instruction("OP_SET_LOCAL", t, offset); break;
-    case OP_GET_LOCAL: byte_instruction("OP_GET_LOCAL", t, offset); break;
-
-    case OP_LOOP: disasm_jump_instr("OP_LOOP", -1, t, offset); return 3;
-    case OP_JUMP: disasm_jump_instr("OP_JUMP", 1, t, offset); return 3;
-    case OP_JUMP_IF_FALSE: disasm_jump_instr("OP_JUMP_IF_FALSE", 1, t, offset); return 3;
-
-    case OP_CALL: byte_instruction("OP_CALL", t, offset); break;
-
-    default:
-        printf("Unknown opcode %d\n", instr);
-        break;
-    }
-
-    return get_code_offset(instr);
-};
-
-void disasm_constant_instr(const char* name, Chunk* t, int offset) {
-    printf("disasm_constant_instr ");
-    uint8_t constant_index = t->code[offset+1]; // get operand 1 (index)
-    printf("%-16s %4d '", name, constant_index);
-    print_value(t->constants.values[constant_index]);
-    printf("'\n");
-};
-
-void disasm_jump_instr(const char* name, int sign, Chunk* chunk, int offset) {
-    uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
-    jump |= chunk->code[offset + 2];
-    printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign*jump);
-};
 
 void print_function(ObjFunction* func) {
     if (func->name != NULL) {
@@ -163,3 +44,162 @@ void print_value(Value v) {
         return;
     }
 };
+
+
+void disassembleChunk(Chunk* chunk, const char* name) {
+  printf("== %s ==\n", name);
+  
+  for (int offset = 0; offset < chunk->count;) {
+    offset = disassembleInstruction(chunk, offset);
+  }
+}
+//> constant-instruction
+static int constantInstruction(const char* name, Chunk* chunk,
+                               int offset) {
+  uint8_t constant = chunk->code[offset + 1];
+  printf("%-16s %4d '", name, constant);
+  print_value(chunk->constants.values[constant]);
+  printf("'\n");
+//> return-after-operand
+  return offset + 2;
+//< return-after-operand
+}
+//< constant-instruction
+//> Methods and Initializers invoke-instruction
+static int invokeInstruction(const char* name, Chunk* chunk,
+                                int offset) {
+  uint8_t constant = chunk->code[offset + 1];
+  uint8_t argCount = chunk->code[offset + 2];
+  printf("%-16s (%d args) %4d '", name, argCount, constant);
+  print_value(chunk->constants.values[constant]);
+  printf("'\n");
+  return offset + 3;
+}
+//< Methods and Initializers invoke-instruction
+//> simple-instruction
+static int simpleInstruction(const char* name, int offset) {
+  printf("%s\n", name);
+  return offset + 1;
+}
+//< simple-instruction
+//> Local Variables byte-instruction
+static int byteInstruction(const char* name, Chunk* chunk,
+                           int offset) {
+  uint8_t slot = chunk->code[offset + 1];
+  printf("%-16s %4d\n", name, slot);
+  return offset + 2; // [debug]
+}
+//< Local Variables byte-instruction
+//> Jumping Back and Forth jump-instruction
+static int jumpInstruction(const char* name, int sign,
+                           Chunk* chunk, int offset) {
+  uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
+  jump |= chunk->code[offset + 2];
+  printf("%-16s %4d -> %d\n", name, offset,
+         offset + 3 + sign * jump);
+  return offset + 3;
+}
+//< Jumping Back and Forth jump-instruction
+//> disassemble-instruction
+int disassembleInstruction(Chunk* chunk, int offset) {
+  printf("%04d ", offset);
+//> show-location
+  if (offset > 0 &&
+      chunk->lines[offset] == chunk->lines[offset - 1]) {
+    printf("   | ");
+  } else {
+    printf("%4d ", chunk->lines[offset]);
+  }
+//< show-location
+  
+  uint8_t instruction = chunk->code[offset];
+  switch (instruction) {
+//> disassemble-constant
+    case OP_CONST:
+      return constantInstruction("OP_CONST", chunk, offset);
+//< disassemble-constant
+//> Types of Values disassemble-literals
+    case OP_NULL:
+      return simpleInstruction("OP_NIL", offset);
+    case OP_TRUE:
+      return simpleInstruction("OP_TRUE", offset);
+    case OP_FALSE:
+      return simpleInstruction("OP_FALSE", offset);
+//< Types of Values disassemble-literals
+//> Global Variables disassemble-pop
+    case OP_POP:
+      return simpleInstruction("OP_POP", offset);
+//< Global Variables disassemble-pop
+//> Local Variables disassemble-local
+    case OP_GET_LOCAL:
+      return byteInstruction("OP_GET_LOCAL", chunk, offset);
+    case OP_SET_LOCAL:
+      return byteInstruction("OP_SET_LOCAL", chunk, offset);
+//< Local Variables disassemble-local
+//> Global Variables disassemble-get-global
+    case OP_GET_GLOBAL:
+      return constantInstruction("OP_GET_GLOBAL", chunk, offset);
+//< Global Variables disassemble-get-global
+//> Global Variables disassemble-define-global
+    case OP_DEFINE_GLOBAL:
+      return constantInstruction("OP_DEFINE_GLOBAL", chunk,
+                                 offset);
+//< Global Variables disassemble-define-global
+//> Global Variables disassemble-set-global
+    case OP_SET_GLOBAL:
+      return constantInstruction("OP_SET_GLOBAL", chunk, offset);
+
+//< Superclasses disassemble-get-super
+//> Types of Values disassemble-comparison
+    case OP_EQUAL:
+      return simpleInstruction("OP_EQUAL", offset);
+    case OP_GREATER:
+      return simpleInstruction("OP_GREATER", offset);
+    case OP_LESS:
+      return simpleInstruction("OP_LESS", offset);
+//< Types of Values disassemble-comparison
+//> A Virtual Machine disassemble-binary
+    case OP_ADD:
+      return simpleInstruction("OP_ADD", offset);
+    case OP_SUB:
+      return simpleInstruction("OP_SUBTRACT", offset);
+    case OP_MUL:
+      return simpleInstruction("OP_MULTIPLY", offset);
+    case OP_DIV:
+      return simpleInstruction("OP_DIVIDE", offset);
+//> Types of Values disassemble-not
+    case OP_NOT:
+      return simpleInstruction("OP_NOT", offset);
+//< Types of Values disassemble-not
+//< A Virtual Machine disassemble-binary
+//> A Virtual Machine disassemble-negate
+    case OP_NEGATE:
+      return simpleInstruction("OP_NEGATE", offset);
+//< A Virtual Machine disassemble-negate
+//> Global Variables disassemble-print
+    case OP_PRINT:
+      return simpleInstruction("OP_PRINT", offset);
+//< Global Variables disassemble-print
+//> Jumping Back and Forth disassemble-jump
+    case OP_JUMP:
+      return jumpInstruction("OP_JUMP", 1, chunk, offset);
+    case OP_JUMP_IF_FALSE:
+      return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
+//< Jumping Back and Forth disassemble-jump
+//> Jumping Back and Forth disassemble-loop
+    case OP_LOOP:
+      return jumpInstruction("OP_LOOP", -1, chunk, offset);
+//< Jumping Back and Forth disassemble-loop
+//> Calls and Functions disassemble-call
+    case OP_CALL:
+      return byteInstruction("OP_CALL", chunk, offset);
+
+    //case OP_RET:
+       // return printf("OP_RET\n"); return offset+1;
+
+    default:
+      printf("Unknown opcode %d\n", instruction);
+      return offset + 1;
+  }
+}
+//< disassemble-instruction
