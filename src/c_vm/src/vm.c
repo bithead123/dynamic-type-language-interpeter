@@ -116,10 +116,19 @@ bool call_value(Value callee, int argCount) {
         case OBJ_NATIVE:
             NativeFn native = AS_NATIVE(callee);
             
-            // we no need to work with frame. no bytecode by native. 
-            Value result = native(argCount, vm.stack_top - argCount);
-            vm.stack_top -= argCount + 1;
-            vm_stack_push(result);
+            bool success;
+            Value result = native(argCount, vm.stack_top - argCount, &success);
+            if (!success) {
+                runtime_error(AS_STRING(vm.stack_top[-argCount - 1])->chars);
+                return false;
+            }
+            else {
+                // we no need t\o work with frame. no bytecode by native. 
+                //Value result = native(argCount, vm.stack_top - argCount);
+                vm.stack_top -= argCount + 1;
+                vm_stack_push(result);
+            }
+
             return true;
             
         default:
@@ -381,7 +390,7 @@ Value vm_stack_pop() {
 // --------- VM
 
 void vm_add_natives() {
-    define_native("clock", clock_);
+    define_native("clock", _clock);
 };
 
 void vm_init() {
