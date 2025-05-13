@@ -36,6 +36,9 @@ void freeObj(Obj* t) {
         FREE(ObjNative, t);
         break;
 
+    case OBJ_CLOSURE:
+        FREE(ObjClosure, t);
+
     default:
         break;
     }
@@ -49,6 +52,7 @@ ObjFunction* new_function() {
     ObjFunction* f = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     f->arity = 0;
     f->name = NULL;
+    f->upvalue_count = 0;
     chunk_init(&f->chunk, 24);
     return f;
 };
@@ -102,4 +106,10 @@ ObjNative* new_native(NativeFn function) {
     ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
     native->function = function;
     return native;
+};
+
+ObjClosure* new_closure(ObjFunction* function) {
+    ObjClosure* closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+    closure->function = function;
+    return closure;
 };

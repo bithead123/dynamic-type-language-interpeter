@@ -42,6 +42,10 @@ typedef enum {
     OP_DUP,
     // functions
     OP_CALL,
+    // closures
+    OP_CLOSURE,
+    OP_GET_UPVALUE,
+    OP_SET_UPVALUE
 } OP_CODE;
 
 typedef struct {

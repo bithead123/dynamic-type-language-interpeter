@@ -20,6 +20,11 @@ typedef enum {
 } FunctionType;
 
 typedef struct {
+    uint8_t index;
+    bool is_local;
+} ClosureUpvalue;
+
+typedef struct {
     struct Compiler* enclosing;
     
     ObjFunction* function;
@@ -28,6 +33,9 @@ typedef struct {
     int local_count;
     int scope_depth;
     Local locals[UINT8_COUNT];
+
+    ClosureUpvalue upvalues[UINT8_COUNT];
+    
 } Compiler;
 
 typedef struct {
@@ -779,6 +787,46 @@ uint8_t parse_variable(const char* errorMsg) {
     return make_id_constant(&parser.previous);
 };
 
+int add_upvalue(Compiler* compiler, uint8_t index, bool isLocal) {
+    // add new upvalue for this closure.
+    int upvalueCount = compiler->function->upvalue_count;
+
+    // check this compiler already contains upvalue to this index.
+    for (int i = 0; i < upvalueCount; i++) {
+        ClosureUpvalue* upv = &compiler->upvalues[i];
+        if (upv->index == index && upv->is_local == isLocal) {
+            return i;
+        }
+    }
+
+    if (upvalueCount > UINT8_COUNT) {
+        error("Too many closure variables in function.");
+        return 0;
+    }
+
+    // this function contain new upvalue.
+    compiler->upvalues[upvalueCount].index = index;
+    compiler->upvalues[upvalueCount].is_local = isLocal;
+
+    return compiler->function->upvalue_count++;
+};
+
+int resolve_upvalue(Compiler* compiler, Token* name) {
+    if (compiler->enclosing == NULL) return -1;
+
+    int local = resolve_local(compiler->enclosing, name);
+    if (local != -1) {
+        return add_upvalue(compiler, (uint8_t)local, true);
+    }
+
+    int upvalue = resolve_upvalue(compiler->enclosing, name);
+    if (upvalue != -1) {
+        return add_upvalue(compiler, (uint8_t)upvalue, false);
+    }
+
+    return -1;
+};
+
 void named_variable(Token token, bool canAssign) {
     uint8_t getOp, setOp;
 
@@ -787,6 +835,11 @@ void named_variable(Token token, bool canAssign) {
         // its local var
         getOp = OP_GET_LOCAL;
         setOp = OP_SET_LOCAL;
+    }
+    else if ((arg = resolve_upvalue(current_comp, &token)) != -1) {
+        // its upvalue
+        getOp = OP_GET_UPVALUE;
+        setOp = OP_SET_UPVALUE;
     }
     else {
         // its global var
@@ -870,7 +923,14 @@ void function_impl(FunctionType type) {
     block();
 
     ObjFunction* function = end_compiler();
-    emit_bytes(OP_CONST, make_constant(OBJ_VAL(function)));
+    //emit_bytes(OP_CONST, make_constant(OBJ_VAL(function)));
+    emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(function)));
+
+    // put upvalues on stack.
+    for(int i = 0; i < function->upvalue_count; i++) {
+        emit_byte(compiler.upvalues[i].is_local ? 1 : 0);
+        emit_byte(compiler.upvalues[i].index);
+    }
 }
 
 void function_decl() {
@@ -958,8 +1018,6 @@ ObjFunction* compile(const char* source) {
     //compiling_chunk = chunk;
     parser.had_error = false;
     parser.panic_mode = false;
-    
-    
 
     advance();
     

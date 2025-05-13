@@ -11,3 +11,6 @@ fun fib(n) {
 
 print fib(15);
 print clock() - s;
+---------
+print max(10, 15);
+print min(10, "aqwd");

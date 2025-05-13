@@ -15,6 +15,10 @@ void print_function(ObjFunction* func) {
 void print_object(Value v) {
     switch (OBJ_TYPE(v))
     {
+      case OBJ_CLOSURE:
+        print_function(AS_CLOSURE(v)->function);
+        break;
+
     case OBJ_STRING:
         printf("\"%s\"", AS_CSTRING(v));
         break;
@@ -193,6 +197,28 @@ int disassembleInstruction(Chunk* chunk, int offset) {
 //> Calls and Functions disassemble-call
     case OP_CALL:
       return byteInstruction("OP_CALL", chunk, offset);
+
+    case OP_GET_UPVALUE:
+        return byteInstruction("OP_GET_UPVALUE", chunk, offset);
+
+  case OP_SET_UPVALUE:
+        return byteInstruction("OP_SET_UPVALUE", chunk, offset);
+
+    case OP_CLOSURE:
+      offset++;
+      uint8_t constant = chunk->code[offset++];
+      printf("%-16s %4d ", "OP_CLOSURE", constant);
+      print_value(chunk->constants.values[constant]);
+      printf("\n");
+
+      ObjFunction* function = AS_FUNCTION(chunk->constants.values[constant]);
+      for (int i = 0; i < function->upvalue_count; i++) {
+        int is_local = chunk->code[offset++];
+        int index = chunk->code[offset++];
+        printf("%04d  |\t\t\t\t%s %d\n", offset-2, is_local ? "local" : "upval", index);
+      }
+
+      return offset;
 
     //case OP_RET:
        // return printf("OP_RET\n"); return offset+1;

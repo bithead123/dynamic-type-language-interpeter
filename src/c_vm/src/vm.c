@@ -24,9 +24,9 @@ void runtime_error(const char* format, ...) {
     // stack trace
     for (int i = vm.frames_count - 1; i >= 0; i--) {
         CallFrame* frame = &vm.frames[i];
-        size_t instr = frame->ip - frame->function->chunk.code - 1;
-        int line = frame->function->chunk.lines[instr];
-        ObjFunction* fn = frame->function;
+        size_t instr = frame->ip - frame->closure->function->chunk.code - 1;
+        int line = frame->closure->function->chunk.lines[instr];
+        ObjFunction* fn = frame->closure->function;
         fprintf(stderr, "[line %d] in %s\n", line, (fn->name != NULL ? fn->name->chars : "script"));
     }
 
@@ -84,10 +84,11 @@ ObjString* strings_concat() {
     return str;
 };
 
-bool vm_call_func(ObjFunction* function, int argCount) {
+bool vm_call_func(ObjClosure* closure, int argCount) {
+    
     // check args
-    if (argCount != function->arity) {
-        runtime_error("Expected %d argemunts but got %d in '%s'.", function->arity, argCount, (function->name != NULL ? function->name->chars : ""));
+    if (argCount != closure->function->arity) {
+        runtime_error("Expected %d argemunts but got %d in '%s'.", closure->function->arity, argCount, (closure->function->name != NULL ? closure->function->name->chars : ""));
         return false;
     }
     
@@ -97,10 +98,12 @@ bool vm_call_func(ObjFunction* function, int argCount) {
         return false;
     }
 
+    printf("VM_CALL: clos=%p fn=%p upv=%i chunk=%p\n", closure, closure->function, closure->function->upvalue_count, closure->function->chunk);
+
     // create new frame for calling function.
     CallFrame* frame = &vm.frames[vm.frames_count++];
-    frame->function = function;
-    frame->ip = function->chunk.code;
+    frame->closure = closure;
+    frame->ip = closure->function->chunk.code;
     frame->slots = vm.stack_top - argCount - 1;
 
     return true;
@@ -112,9 +115,12 @@ bool call_value(Value callee, int argCount) {
     if (IS_OBJ(callee)) {
         switch ((OBJ_TYPE(callee)))
         {
-        case OBJ_FUNCTION:
-            return vm_call_func(AS_FUNCTION(callee), argCount);
-        
+        //case OBJ_FUNCTION:
+            //return vm_call_func(AS_FUNCTION(callee), argCount);
+
+        case OBJ_CLOSURE:
+            return vm_call_func(AS_CLOSURE(callee), argCount);
+
         case OBJ_NATIVE:
             NativeFn native = AS_NATIVE(callee);
             
@@ -151,7 +157,7 @@ INTERPRET_RESULT run() {
         (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 
     #define READ_BYTE() (*ip++)
-    #define READ_CONSTANT() (frame->function->chunk.constants.values[READ_BYTE()])
+    #define READ_CONSTANT() (frame->closure->function->chunk.constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())
     #define BINARY_OP(valueType, operation) \
         do {\
@@ -186,7 +192,7 @@ INTERPRET_RESULT run() {
         }
         printf("\n");
 
-        disassembleInstruction(&frame->function->chunk, (int)(ip - frame->function->chunk.code));
+        disassembleInstruction(&frame->closure->function->chunk, (int)(ip - frame->closure->function->chunk.code));
         #endif
 
         uint8_t code; 
@@ -333,6 +339,12 @@ INTERPRET_RESULT run() {
             ip = frame->ip;
             break;
 
+        case OP_CLOSURE:
+            ObjFunction* func = AS_FUNCTION(READ_CONSTANT());
+            ObjClosure* closure = new_closure(func);
+            vm_stack_push(OBJ_VAL(closure));
+            break;
+
         default:
             break;
         }
@@ -352,14 +364,12 @@ INTERPRET_RESULT vm_interpret_source(const char* source) {
 
     // set MAIN function at top frame to run 
     vm_stack_push(OBJ_VAL(function));
-
-    //CallFrame* frame = &vm.frames[vm.frames_count++];
-    //frame->function = function;
-    //frame->ip = function->chunk.code;
-    //frame->slots = vm.stack;
+    ObjClosure* closure = new_closure(function);
+    vm_stack_pop();
+    vm_stack_push(OBJ_VAL(closure));
 
     // set initialy function.
-    vm_call_func(function, 0);
+    vm_call_func(closure, 0);
 
     return run();
 };

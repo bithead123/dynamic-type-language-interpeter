@@ -9,7 +9,8 @@
 typedef enum ObjType {
     OBJ_STRING,
     OBJ_FUNCTION,
-    OBJ_NATIVE
+    OBJ_NATIVE,
+    OBJ_CLOSURE,
 } ObjType;
 
 struct Obj {
@@ -29,7 +30,13 @@ typedef struct {
     int arity;
     Chunk chunk;
     ObjString* name;
+    int upvalue_count;
 } ObjFunction; 
+
+typedef struct {
+    Obj obj;
+    ObjFunction* function;
+} ObjClosure;
 
 typedef Value(*NativeFn)(int argCount, Value* args, bool* success);
 
@@ -40,6 +47,7 @@ typedef struct {
 
 ObjFunction* new_function();
 ObjNative* new_native(NativeFn function);
+ObjClosure* new_closure(ObjFunction* function);
 
 ObjString* copy_string(const char* chars, int length);
 ObjString* new_string(const char* chars, int length);

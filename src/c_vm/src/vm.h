@@ -16,7 +16,8 @@ typedef enum {
 #define VM_FRAMES_MAX 64
 
 typedef struct {
-    ObjFunction* function;
+    ObjClosure* closure;
+    //ObjFunction* function;
     uint8_t* ip;
     Value* slots; // stack
  } CallFrame;
