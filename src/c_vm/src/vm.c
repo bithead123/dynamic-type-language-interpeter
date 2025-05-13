@@ -149,11 +149,38 @@ bool call_value(Value callee, int argCount) {
 };
 
 ObjUpvalue* capture_upvalue(Value* local) {
-    ObjUpvalue* upv = new_upvalue(local);
-    return upv;
+    // lookup for this upvalue.
+    ObjUpvalue* prev= NULL;
+    ObjUpvalue* upv = vm.open_upvalues;
+    while(upv !=  NULL && upv->location > local) {
+        prev = upv;
+        upv = upv->next;
+    }
+
+    if (upv != NULL && upv->location == local) {
+        return upv;
+    }
+
+    ObjUpvalue* new_upv = new_upvalue(local);
+    new_upv->next = upv;
+
+    if (prev == NULL) {
+        vm.open_upvalues = new_upv;
+    } else {
+        prev->next = new_upv;
+    }
+
+    return new_upv;
 };
 
-
+void close_copy_upvalues(Value* last) {
+    while(vm.open_upvalues != NULL && vm.open_upvalues->location >= last) {
+        ObjUpvalue* upv = vm.open_upvalues;
+        upv->closed = *upv->location;
+        upv->location = &upv->closed;
+        vm.open_upvalues  = upv->next;
+    }
+}
 
 INTERPRET_RESULT run() {
     CallFrame* frame = &vm.frames[vm.frames_count-1];
@@ -212,6 +239,7 @@ INTERPRET_RESULT run() {
             // clear stack args
             // push returned value on top of the stack.
             Value ret_value = vm_stack_pop();
+            close_copy_upvalues(frame->slots);
             vm.frames_count--;
 
             if (vm.frames_count == 0) {
@@ -357,6 +385,11 @@ INTERPRET_RESULT run() {
             *frame->closure->upvalues[slot]->location = stack_peek(0);
             break;
 
+        case OP_CLOSE_UPVALUE:
+            close_copy_upvalues(vm.stack_top-1);
+            vm_stack_pop();
+            break;
+
         case OP_CLOSURE:
             ObjFunction* func = AS_FUNCTION(READ_CONSTANT());
             ObjClosure* closure = new_closure(func);
@@ -419,6 +452,7 @@ INTERPRET_RESULT vm_interpret(Chunk* t) {
 void vm_reset_stack() {
     vm.stack_top = vm.stack;
     vm.frames_count = 0;
+    vm.open_upvalues = NULL;
 };
 
 void vm_stack_push(Value v) {

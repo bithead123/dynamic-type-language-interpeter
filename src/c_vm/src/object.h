@@ -39,6 +39,8 @@ typedef Value(*NativeFn)(int argCount, Value* args, bool* success);
 typedef struct ObjUpvalue {
     Obj obj;
     Value* location;
+    ObjUpvalue* next;
+    Value closed;
 } ObjUpvalue;
 
 typedef struct {

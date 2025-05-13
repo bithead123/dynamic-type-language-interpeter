@@ -141,5 +141,7 @@ ObjClosure* new_closure(ObjFunction* function) {
 ObjUpvalue* new_upvalue(Value* slot) {
     ObjUpvalue* upv = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
     upv->location = slot;
+    upv->next = NULL;
+    upv->closed = NULL_VAL;
     return upv;
 }

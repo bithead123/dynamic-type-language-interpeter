@@ -34,6 +34,8 @@ typedef struct {
     // ---- strings ----
     Hashtable strings;
     Hashtable globals;
+    // ----- upvalues ---
+    ObjUpvalue* open_upvalues;
 } VM;
 
 extern VM vm;

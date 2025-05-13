@@ -12,6 +12,7 @@
 typedef struct {
     int depth;
     Token name;
+    bool is_captured; // has upvalue references
 } Local;
 
 typedef enum {
@@ -26,7 +27,7 @@ typedef struct {
 
 
 typedef struct {
-    struct Compiler* enclosing;
+    Compiler* enclosing;
     
     ObjFunction* function;
     FunctionType function_type;
@@ -128,7 +129,14 @@ void shrink_local_variables() {
         current_comp->locals[current_comp->local_count-1].depth >
         current_comp->scope_depth) {
             COMPILER_DEBUG_LOG("shrink_local_variables\n");
-            emit_byte(OP_POP);
+            
+            if (current_comp->locals[current_comp->local_count-1].is_captured) {
+                emit_byte(OP_CLOSE_UPVALUE);
+            }
+            else {
+                emit_byte(OP_POP);
+            }
+
             current_comp->local_count--;
         }
 };
@@ -169,6 +177,7 @@ void add_local(Token name) {
     Local* local = &current_comp->locals[current_comp->local_count++];
     local->name = name;
     local->depth = current_comp->scope_depth;
+    local->is_captured = false;
 };
 
 // ------------ CHUNK TOOLS
@@ -817,6 +826,8 @@ int resolve_upvalue(Compiler* compiler, Token* name) {
 
     int local = resolve_local(compiler->enclosing, name);
     if (local != -1) {
+        // now local has a reference by upvalue.
+        compiler->enclosing->locals[local].is_captured = true;  
         return add_upvalue(compiler, (uint8_t)local, true);
     }
 
@@ -1075,5 +1086,6 @@ void compiler_init(Compiler* comp, FunctionType type) {
     local->depth = 0;
     local->name.start = "";
     local->name.length = 0;
+    local->is_captured = false;
 };
 
