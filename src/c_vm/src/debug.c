@@ -31,6 +31,10 @@ void print_object(Value v) {
         printf("<native fn>");
         break;
 
+    case OBJ_UPVALUE:
+      printf("<upvalue>");
+      break;
+
     default:
         return;
     }

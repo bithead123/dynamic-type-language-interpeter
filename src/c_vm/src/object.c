@@ -7,6 +7,12 @@ bool is_obj_type(Value v, ObjType type) {
     return IS_OBJ(v) && AS_OBJ(v)->type == type;
 };
 
+void free_upvalues(ObjClosure* closure) {
+    for (int i = 0; i < closure->upvalues_count; i++) {
+        free(closure->upvalues[i]);
+    }
+}
+
 Obj* allocate_obj(size_t size, ObjType type) {
     Obj* t = malloc(size);
     t->type = type;
@@ -37,7 +43,15 @@ void freeObj(Obj* t) {
         break;
 
     case OBJ_CLOSURE:
+        ObjClosure* closure = (ObjClosure*)t;
+        //free_upvalues(closure);
+        free(closure->upvalues);
         FREE(ObjClosure, t);
+        break;
+
+    case OBJ_UPVALUE:
+        FREE(ObjUpvalue, t);
+        break;
 
     default:
         break;
@@ -110,6 +124,22 @@ ObjNative* new_native(NativeFn function) {
 
 ObjClosure* new_closure(ObjFunction* function) {
     ObjClosure* closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+    
+    int upvalues_count = function->upvalue_count;
+    ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, upvalues_count);
+    for (int i = 0; i < upvalues_count; i++) {
+        upvalues[i] = NULL;
+    }
+
     closure->function = function;
+    closure->upvalues = upvalues;
+    closure->upvalues_count = upvalues_count;
+    
     return closure;
 };
+
+ObjUpvalue* new_upvalue(Value* slot) {
+    ObjUpvalue* upv = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
+    upv->location = slot;
+    return upv;
+}

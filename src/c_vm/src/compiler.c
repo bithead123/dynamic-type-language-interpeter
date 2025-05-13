@@ -24,6 +24,7 @@ typedef struct {
     bool is_local;
 } ClosureUpvalue;
 
+
 typedef struct {
     struct Compiler* enclosing;
     

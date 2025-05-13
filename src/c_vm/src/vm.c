@@ -148,6 +148,13 @@ bool call_value(Value callee, int argCount) {
     return false;
 };
 
+ObjUpvalue* capture_upvalue(Value* local) {
+    ObjUpvalue* upv = new_upvalue(local);
+    return upv;
+};
+
+
+
 INTERPRET_RESULT run() {
     CallFrame* frame = &vm.frames[vm.frames_count-1];
 
@@ -339,10 +346,35 @@ INTERPRET_RESULT run() {
             ip = frame->ip;
             break;
 
+
+        case OP_GET_UPVALUE:
+            uint8_t slot = READ_BYTE();
+            vm_stack_push(*frame->closure->upvalues[slot]->location);
+            break;
+
+        case OP_SET_UPVALUE:
+            uint8_t slot_set = READ_BYTE();
+            *frame->closure->upvalues[slot]->location = stack_peek(0);
+            break;
+
         case OP_CLOSURE:
             ObjFunction* func = AS_FUNCTION(READ_CONSTANT());
             ObjClosure* closure = new_closure(func);
             vm_stack_push(OBJ_VAL(closure));
+
+            // copy all upvalues from parent closure.
+            for (int i = 0; i < closure->upvalues_count; i++) {
+                uint8_t upv_local  = READ_BYTE();
+                uint8_t upv_index = READ_BYTE();
+                if (upv_local) {
+                    // take from local
+                    closure->upvalues[i] = capture_upvalue(frame->slots + upv_index);
+                } else {
+                    // take from parent..
+                    closure->upvalues[i] = frame->closure->upvalues[upv_index];
+                }
+            }
+
             break;
 
         default:

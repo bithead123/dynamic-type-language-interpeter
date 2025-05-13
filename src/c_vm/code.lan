@@ -5,10 +5,12 @@ fun outer() {
 
     fun inner() {
         print a;
+        a = 55;
     }
 
-    return inner;
+    inner();
+
+    print a;
 }
 
-var fff = outer();
-fff();
+outer();
