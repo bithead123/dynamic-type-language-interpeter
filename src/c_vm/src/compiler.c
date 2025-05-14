@@ -27,7 +27,7 @@ typedef struct {
 
 
 typedef struct {
-    Compiler* enclosing;
+    struct Compiler* enclosing;
     
     ObjFunction* function;
     FunctionType function_type;
@@ -827,7 +827,8 @@ int resolve_upvalue(Compiler* compiler, Token* name) {
     int local = resolve_local(compiler->enclosing, name);
     if (local != -1) {
         // now local has a reference by upvalue.
-        compiler->enclosing->locals[local].is_captured = true;  
+        ((Compiler*)compiler->enclosing)->locals[local].is_captured = true;  
+        //compiler->enclosing->locals[local].is_captured = true;  
         return add_upvalue(compiler, (uint8_t)local, true);
     }
 
@@ -935,13 +936,18 @@ void function_impl(FunctionType type) {
     block();
 
     ObjFunction* function = end_compiler();
-    //emit_bytes(OP_CONST, make_constant(OBJ_VAL(function)));
-    emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(function)));
 
-    // put upvalues on stack.
-    for(int i = 0; i < function->upvalue_count; i++) {
-        emit_byte(compiler.upvalues[i].is_local ? 1 : 0);
-        emit_byte(compiler.upvalues[i].index);
+    if (function->upvalue_count == 0) {
+        emit_bytes(OP_CONST, make_constant(OBJ_VAL(function)));
+    }
+    else {
+        emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(function)));
+    
+        // put upvalues on stack.
+        for(int i = 0; i < function->upvalue_count; i++) {
+            emit_byte(compiler.upvalues[i].is_local ? 1 : 0);
+            emit_byte(compiler.upvalues[i].index);
+        }
     }
 }
 

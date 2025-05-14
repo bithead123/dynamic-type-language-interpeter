@@ -12,6 +12,15 @@ Value stack_peek(int distance) {
     return vm.stack_top[-1 - distance];
 };
 
+ObjFunction* get_frame_function(CallFrame* frame) {
+    if (frame->function->type == OBJ_FUNCTION) {
+        return (ObjFunction*)frame->function;
+    } 
+    else if (frame->function->type == OBJ_CLOSURE) {
+        return ((ObjClosure*)frame->function)->function;
+    }
+};
+
 void runtime_error(const char* format, ...) {
     printf("\n");
     fprintf(stderr, "--------- Runtime error ---------\n");
@@ -24,9 +33,10 @@ void runtime_error(const char* format, ...) {
     // stack trace
     for (int i = vm.frames_count - 1; i >= 0; i--) {
         CallFrame* frame = &vm.frames[i];
-        size_t instr = frame->ip - frame->closure->function->chunk.code - 1;
-        int line = frame->closure->function->chunk.lines[instr];
-        ObjFunction* fn = frame->closure->function;
+        ObjFunction* func = get_frame_function(frame);
+        size_t instr = frame->ip - func->chunk.code - 1;
+        int line = func->chunk.lines[instr];
+        ObjFunction* fn = func;
         fprintf(stderr, "[line %d] in %s\n", line, (fn->name != NULL ? fn->name->chars : "script"));
     }
 
@@ -84,30 +94,37 @@ ObjString* strings_concat() {
     return str;
 };
 
-bool vm_call_func(ObjClosure* closure, int argCount) {
-    
-    // check args
-    if (argCount != closure->function->arity) {
-        runtime_error("Expected %d argemunts but got %d in '%s'.", closure->function->arity, argCount, (closure->function->name != NULL ? closure->function->name->chars : ""));
-        return false;
-    }
-    
-    // check vm frame depth
-    if (vm.frames_count == VM_FRAMES_MAX) {
-        runtime_error("Stack overflow.");
-        return false;
-    }
+// call closure
+// call func
 
-    printf("VM_CALL: clos=%p fn=%p upv=%i chunk=%p\n", closure, closure->function, closure->function->upvalue_count, closure->function->chunk);
 
-    // create new frame for calling function.
-    CallFrame* frame = &vm.frames[vm.frames_count++];
-    frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
-    frame->slots = vm.stack_top - argCount - 1;
+static bool vm_call_func(Obj* callee, ObjFunction* function, int argCount) {
+  if (argCount != function->arity) {
+    runtime_error("Expected %d arguments but got %d.",
+        function->arity, argCount);
+    return false;
+  }
 
-    return true;
-};
+  if (vm.frames_count == VM_FRAMES_MAX) {
+    runtime_error("Stack overflow.");
+    return false;
+  }
+
+  CallFrame* frame = &vm.frames[vm.frames_count++];
+  frame->function = (Obj*)callee;
+  frame->ip = function->chunk.code;
+
+  frame->slots = vm.stack_top - argCount - 1;
+  return true;
+}
+
+static bool call_closure(ObjClosure* closure, int argCount) {
+  return vm_call_func((Obj*)closure, closure->function, argCount);
+}
+
+static bool call_function(ObjFunction* function, int argCount) {
+  return vm_call_func((Obj*)function, function, argCount);
+}
 
 bool call_value(Value callee, int argCount) {
     
@@ -115,11 +132,11 @@ bool call_value(Value callee, int argCount) {
     if (IS_OBJ(callee)) {
         switch ((OBJ_TYPE(callee)))
         {
-        //case OBJ_FUNCTION:
-            //return vm_call_func(AS_FUNCTION(callee), argCount);
+        case OBJ_FUNCTION:
+            return call_function(AS_FUNCTION(callee), argCount);
 
         case OBJ_CLOSURE:
-            return vm_call_func(AS_CLOSURE(callee), argCount);
+            return call_closure(AS_CLOSURE(callee), argCount);
 
         case OBJ_NATIVE:
             NativeFn native = AS_NATIVE(callee);
@@ -191,7 +208,7 @@ INTERPRET_RESULT run() {
         (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 
     #define READ_BYTE() (*ip++)
-    #define READ_CONSTANT() (frame->closure->function->chunk.constants.values[READ_BYTE()])
+    #define READ_CONSTANT() (get_frame_function(frame)->chunk.constants.values[READ_BYTE()])
     #define READ_STRING() AS_STRING(READ_CONSTANT())
     #define BINARY_OP(valueType, operation) \
         do {\
@@ -226,7 +243,8 @@ INTERPRET_RESULT run() {
         }
         printf("\n");
 
-        disassembleInstruction(&frame->closure->function->chunk, (int)(ip - frame->closure->function->chunk.code));
+        ObjFunction* fn = get_frame_function(frame);
+        disassembleInstruction(&fn->chunk, (int)(ip - fn->chunk.code));
         #endif
 
         uint8_t code; 
@@ -377,12 +395,13 @@ INTERPRET_RESULT run() {
 
         case OP_GET_UPVALUE:
             uint8_t slot = READ_BYTE();
-            vm_stack_push(*frame->closure->upvalues[slot]->location);
+            
+            vm_stack_push(*((ObjClosure*)frame->function)->upvalues[slot]->location);
             break;
 
         case OP_SET_UPVALUE:
             uint8_t slot_set = READ_BYTE();
-            *frame->closure->upvalues[slot]->location = stack_peek(0);
+            *((ObjClosure*)frame->function)->upvalues[slot]->location = stack_peek(0);
             break;
 
         case OP_CLOSE_UPVALUE:
@@ -404,7 +423,7 @@ INTERPRET_RESULT run() {
                     closure->upvalues[i] = capture_upvalue(frame->slots + upv_index);
                 } else {
                     // take from parent..
-                    closure->upvalues[i] = frame->closure->upvalues[upv_index];
+                    closure->upvalues[i] = ((ObjClosure*)frame->function)->upvalues[upv_index];
                 }
             }
 
@@ -434,7 +453,7 @@ INTERPRET_RESULT vm_interpret_source(const char* source) {
     vm_stack_push(OBJ_VAL(closure));
 
     // set initialy function.
-    vm_call_func(closure, 0);
+    call_closure(closure, 0);
 
     return run();
 };
