@@ -1,0 +1,26 @@
+
+var v = 10;
+
+fun a() {
+    fun inner() {
+        fun f1() {
+            v = 1;
+            fun f2() {
+                v = 2;
+                fun f3() {
+                    print v;
+                }
+                f3();
+                print v;
+            }
+            f2();
+            print v;
+        }
+
+        f1();
+    }
+
+    inner();
+}
+
+a();
